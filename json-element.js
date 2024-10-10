@@ -12,6 +12,7 @@ export class JsonElement extends LitElement {
 		'blue',
 		'purple',
 	]
+
 	static get properties() {
 		return {
 			type: { type: String },
@@ -19,7 +20,8 @@ export class JsonElement extends LitElement {
 			expanded: { type: Boolean, reflect: true },
 			level: { type: Number }, // nesting level
 			key: { type: String, reflect: true }, // key of the object
-			addComma: { type: Boolean }
+			addComma: { type: Boolean },
+			subElementCount: { type: Number },
 		}
 	}
 
@@ -70,6 +72,10 @@ export class JsonElement extends LitElement {
 		`;
 	}
 
+	get viewer() {
+		return this.closest('json-viewer');
+	}
+
 	set value(value) {
 		const oldType = this.type;
 		this._value = value;
@@ -78,12 +84,16 @@ export class JsonElement extends LitElement {
 		// distinguish between array, object, and null
 		if (Array.isArray(value)) {
 			this.type = 'array';
+			this.subElementCount = value.length;
 		} else if (value === null) {
 			this.type = 'null';
+			this.subElementCount = 1;
 		} else if (typeof value === 'object') {
 			this.type = 'object';
+			this.subElementCount = Object.keys(value).length;
 		} else {
 			this.type = typeof value;
+			this.subElementCount = 1;
 		}
 
 		// remove previous class
@@ -107,6 +117,8 @@ export class JsonElement extends LitElement {
 		this.expanded = false;
 		this.key = '';
 		this.level = 0;
+		this.addComma = false;
+		this.elementCount = 0;
 	}
 
 	render() {
@@ -133,7 +145,7 @@ export class JsonElement extends LitElement {
 
 		const collapsed = !this.expanded && (this.type === 'object' || this.type === 'array');
 		const collapsedTemplate = html`
-			<span class="collapsed" @click=${this.toggleExpand}>...</span>
+			<span class="collapsed" @click=${this.toggleExpand}> ${this.subElementCount} ${this.type ==='object' ? 'attributes' : 'elements'} </span>
 		`;
 
 		let template = nothing;
