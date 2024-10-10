@@ -4,51 +4,22 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<script src="/json-viewer.js" type="module"></script>
+	<!-- <script
+		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
+		type="module"></script> -->
+		<script src="/json-viewer.js" type="module"></script>
 </head>
 <body>
 
 	<json-viewer></json-viewer>
 		<script>
-			const json = {
-				"key1": "value1",
-				"key2": "value2",
-				"key3": {
-					"key4": "value4",
-					"key5": "value5",
-					"key6": {
-						"key7": "value7",
-						"key8": "value8"
-					}
-				}
-			};
-
-			// complex test json with all data types
-			const complexJSON = {
-				"string": "string",
-				"number": 123,
-				"boolean": true,
-				"null": null,
-				"array": [1, 2, {
-					"key1": "value1",
-					"key2": "value2",
-					"key3": {
-						"key4": "value4",
-						"key5": "value5",
-						"key6": {
-							"key7": "value7",
-							"key8": "value8"
-						}
-					}
-				}],
-				"object": {
-					"key1": "value1",
-					"key2": "value2"
-				}
-			};
 
 			const viewer = document.querySelector('json-viewer')
-			viewer.json = complexJSON;
+			function setJsonFromFileMaker (json) {
+				json = JSON.parse(json);
+				viewer.json = json;
+			}
+			
 		</script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 // import lit from CDN
 import { html, css, LitElement, nothing } from 'https://cdn.skypack.dev/lit';
 import { styleMap } from 'https://cdn.skypack.dev/lit/directives/style-map.js';
+import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
 
 export class JsonElement extends LitElement {
 
@@ -18,6 +19,7 @@ export class JsonElement extends LitElement {
 			expanded: { type: Boolean, reflect: true },
 			level: { type: Number }, // nesting level
 			key: { type: String, reflect: true }, // key of the object
+			addComma: { type: Boolean }
 		}
 	}
 
@@ -25,23 +27,20 @@ export class JsonElement extends LitElement {
 		return css`
 			:host{
 				display: block;
-				margin-left: 20px;
 				--string-color: green;
 				--number-color: red;
 				--boolean-color: blue;
 				--null-color: gray;
-			}
-			json-element::after {
-				content: ',';
-			}
-			json-element:last-of-type::after {
-				content: '';
 			}
 			.collapsed {
 				cursor: pointer;
 			}
 			.collapsed:hover {
 				text-decoration: underline;
+			}
+			json-element {
+				display: block;
+				margin-left: 20px;
 			}
 			.leading-char {
 				cursor: pointer;
@@ -119,57 +118,68 @@ export class JsonElement extends LitElement {
 			${this.valueTemplate()}
 			${this.type === 'array' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>]</span>` : ""}
 			${this.type === 'object' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>}</span>` : ""}
+			${this.addComma ? html`<span>,</span>` : nothing}
 		`
 	}
 
 	keyTemplate() {
 		return html`
-			<span class="key" @click=${this.toggleExpand}>"${this.key}"</span>
-			<span class="colon">:</span>
+			<span class="key" @click=${this.toggleExpand}>"${this.key}" :</span>
 		`
 	}
 
 	valueTemplate() {
-		if (!this.expanded && (this.type === 'object' || this.type === 'array')) {
-			return html`
-				<span class="collapsed" @click=${this.toggleExpand}>...</span>
-			`
-		}
+
+		const collapsed = !this.expanded && (this.type === 'object' || this.type === 'array');
+		const collapsedTemplate = html`
+			<span class="collapsed" @click=${this.toggleExpand}>...</span>
+		`;
+
+		let template = nothing;
 
 		switch (this.type) {
 			case 'object':
+			case 'array':
 
 				// create an element for each key in the object
-				return html`
-					${Object.keys(this.value).map((key, index) => {
+				template = html`
+				${Object.keys(this.value).map((key, index) => {
 					return html`
-							<json-element key=${key} .value=${this.value[key]} .level=${this.level + 1}></json-element>
+							<json-element
+								key=${this.type != 'array' ? key : ''} 
+								.value=${this.value[key]} 
+								.level=${this.level + 1}
+								.addComma=${index < Object.keys(this.value).length - 1}>
+								</json-element>
 						`
 				})}
 				`
-			case 'array':
-				// create an element for each key in the object
-				return html`
-					${Object.keys(this.value).map((key, index) => {
-					return html`
-							<json-element .value=${this.value[key]} .level=${this.level + 1}></json-element>
-						`
-				})}
-				`
+				break;
 			case 'string':
-				return html`
+				template = html`
 					<span class="value">"${this.value}"</span>
 				`
+				break;
 			case 'number':
 			case 'boolean':
-				return html`
+				template = html`
 					<span class="value">${this.value}</span>
 				`
+				break
 			case 'null':
-				return html`
+				template = html`
 					<span class="value">null</span>
 				`
+				break
 		}
+
+		// cache the template to prevent re-rendering of the children
+		// this way, if a child is expanded before the parent collapse,
+		// when the parent is expanded again the child will be in the same state
+		return html`
+			${cache(collapsed ? collapsedTemplate : template)}
+			`
+
 	}
 
 	toggleExpand() {
