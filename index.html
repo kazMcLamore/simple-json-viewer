@@ -4,10 +4,10 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<!-- <script
+	<script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
-		type="module"></script> -->
-		<script src="/json-viewer.js" type="module"></script>
+		type="module"></script>
+		<!-- <script src="/json-viewer.js" type="module"></script> -->
 </head>
 <body>
 
@@ -19,7 +19,26 @@
 				json = JSON.parse(json);
 				viewer.json = json;
 			}
-			
+
+			// build a complex json object to test the viewer.
+			const testJson = {
+				"string": "string",
+				"number": 123,
+				"boolean": true,
+				"null": null,
+				"array": [1, 2, 3],
+				"object": {
+					"string": "string",
+					"number": 123,
+					"boolean": true,
+					"null": null,
+					"array": [1, 2, 3]
+				}
+			}
+
+			// set the json object to the viewer
+			viewer.json = testJson;
+
 		</script>
 </body>
 </html>

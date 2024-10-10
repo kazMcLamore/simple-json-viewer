@@ -31,6 +31,7 @@ export class JsonElement extends LitElement {
 				--number-color: red;
 				--boolean-color: blue;
 				--null-color: gray;
+				font-family: monospace;
 			}
 			.collapsed {
 				cursor: pointer;
