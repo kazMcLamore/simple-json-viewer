@@ -183,8 +183,39 @@ export class JsonElement extends LitElement {
 
 	}
 
-	toggleExpand() {
+	toggleExpand(e) {
+		// get altKey from the event
+		const altKey = e.altKey;
 		this.expanded = !this.expanded;
+		if (this.expanded && altKey) {
+			this.expandAll();
+		} else if (!this.expanded && altKey) { 
+			this.collapseAll();
+		}
+	}
+
+	expandAll() {
+		console.log('expand all');
+		this.expanded = true;
+		// select json-elements AFTER LitElement update is complete
+		// otherwise, the elements will not be found
+		this.updateComplete.then(() => {
+			const elements = this.shadowRoot.querySelectorAll('json-element.object, json-element.array');
+			console.log(this, this.shadowRoot, elements);
+			elements.forEach((element) => {
+				element.expanded = true;
+				element.expandAll();
+			});
+		});
+	}
+
+	collapseAll() {
+		this.expanded = false;
+		const elements = this.shadowRoot.querySelectorAll('json-element.object, json-element.array');
+		elements.forEach((element) => {
+			element.expanded = false;
+			element.collapseAll();
+		});
 	}
 }
 

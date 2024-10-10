@@ -4,41 +4,30 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<script
+	<!-- <script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
-		type="module"></script>
-		<!-- <script src="/json-viewer.js" type="module"></script> -->
+		type="module"></script> -->
+		<script src="/json-viewer.js" type="module"></script>
+		 <script src="/test-data.js"></script>
 </head>
 <body>
 
 	<json-viewer></json-viewer>
 		<script>
-
 			const viewer = document.querySelector('json-viewer')
-			function setJsonFromFileMaker (json) {
-				json = JSON.parse(json);
+			function setJson (json) {
+				// check if it's a string
+				if (typeof json === 'string') {
+					json = JSON.parse(json);
+				} else if (typeof json !== 'object') {
+					throw new Error('Invalid JSON type');
+				}
 				viewer.json = json;
 			}
 
-			// build a complex json object to test the viewer.
-			const testJson = {
-				"string": "string",
-				"number": 123,
-				"boolean": true,
-				"null": null,
-				"array": [1, 2, 3],
-				"object": {
-					"string": "string",
-					"number": 123,
-					"boolean": true,
-					"null": null,
-					"array": [1, 2, 3]
-				}
+			if(testJson){
+				setJson(testJson);
 			}
-
-			// set the json object to the viewer
-			viewer.json = testJson;
-
 		</script>
 </body>
 </html>
