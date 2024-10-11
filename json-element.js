@@ -1,9 +1,14 @@
 // import lit from CDN
 import { html, css, LitElement, nothing } from 'https://cdn.skypack.dev/lit';
+
+import { ContextConsumer } from 'https://cdn.skypack.dev/@lit-labs/context';
+
 import { styleMap } from 'https://cdn.skypack.dev/lit/directives/style-map.js';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
+import { jsonContext } from './constants.js';
 
 export class JsonElement extends LitElement {
+
 
 	static bracketColorsArray = [
 		'orange',
@@ -44,6 +49,7 @@ export class JsonElement extends LitElement {
 			json-element {
 				display: block;
 				margin-left: 20px;
+				margin-top: 5px;
 			}
 			.leading-char {
 				cursor: pointer;
@@ -69,11 +75,14 @@ export class JsonElement extends LitElement {
 			:host(.null) .value {
 				color: var(--null-color);
 			}
+			span.collapsed {
+				color: #777;
+				border: 1px solid #777;
+				border-radius: 3px;
+				padding: 0 2px;
+				margin: 0 5px;
+			}
 		`;
-	}
-
-	get viewer() {
-		return this.closest('json-viewer');
 	}
 
 	set value(value) {
@@ -95,6 +104,8 @@ export class JsonElement extends LitElement {
 			this.type = typeof value;
 			this.subElementCount = 1;
 		}
+
+		
 
 		// remove previous class
 		if (oldType) {
@@ -119,6 +130,7 @@ export class JsonElement extends LitElement {
 		this.level = 0;
 		this.addComma = false;
 		this.elementCount = 0;
+		this._consumer = new ContextConsumer(this, { context: jsonContext });
 	}
 
 	render() {
@@ -137,7 +149,7 @@ export class JsonElement extends LitElement {
 
 	keyTemplate() {
 		return html`
-			<span class="key" @click=${this.toggleExpand}>"${this.key}" :</span>
+			<span class="key" @click=${this.toggleExpand}>"${this.key}":</span>
 		`
 	}
 
@@ -145,8 +157,9 @@ export class JsonElement extends LitElement {
 
 		const collapsed = !this.expanded && (this.type === 'object' || this.type === 'array');
 		const collapsedTemplate = html`
-			<span class="collapsed" @click=${this.toggleExpand}> ${this.subElementCount} ${this.type ==='object' ? 'attributes' : 'elements'} </span>
-		`;
+			<span class="collapsed"
+			@click=${this.toggleExpand}>
+			${this.subElementCount} ${this.type === 'object' ? 'attributes' : 'elements'}</span>`;
 
 		let template = nothing;
 
