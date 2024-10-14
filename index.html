@@ -15,20 +15,25 @@
 	<json-viewer id="json-viewer"></json-viewer>
 		<script>
 			const viewer = document.querySelector('json-viewer')
-			function setJson (json) {
-				// check if it's a string
-				if (typeof json === 'string') {
-					json = JSON.parse(json);
-				} else if (typeof json !== 'object') {
-					throw new Error('Invalid JSON type');
-				}
-				console.log('setting json', json);
-				viewer.json = json;
+			// get id from url parameter
+			const urlParams = new URLSearchParams(window.location.search);
+			const id = urlParams.get('uuid');
+
+			// set the query info
+			viewer.webViewerName = 'json-viewer'
+			viewer.scriptName = 'sub: execute data api (fxp)'
+			viewer.query = {
+				"action": "read",
+				"layouts": "query: function log v1",
+				"limit": 1,
+				"offset": 0,
+				"query": [
+					{
+						__id: `==${id}`,
+					}
+				]
 			}
 
-			if(testJson){
-				setJson(testJson);
-			}
 		</script>
 </body>
 </html>

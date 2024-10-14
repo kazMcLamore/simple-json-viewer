@@ -77,6 +77,7 @@ export class JsonViewer extends LitElement {
 			queryScript: { type: String, reflect: true, attribute: 'query-script' },
 			query: { type: Object, state: true },
 			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
+			limit: { type: Number, reflect: true },
 		};
 	}
 
@@ -86,8 +87,6 @@ export class JsonViewer extends LitElement {
 		this.json = {};
 		this.expandAll = false;
 		this.elementCount = 0;
-		this.layoutName = '';
-		this.queryScript = '';
 		this.query = {};
 
 	}
@@ -107,14 +106,42 @@ export class JsonViewer extends LitElement {
 
 
 	render() {
+		// return html`
+		// <details open>
+		// 	<summary>${this.elementCount - 1} Elements</summary>
+		// 	<json-element .value=${this.json} .expanded=${true}></json-element>
+		// </details>
+		// `;
+
 		return html`
-		<details open>
-			<summary>${this.elementCount - 1} Elements</summary>
-			<json-element .value=${this.json} .expanded=${true}></json-element>
-		</details>
-		`;
+			<details open>
+			${this.queryTask.render({
+				initial: () => html`Loading...`,
+				pending: () => html`Querying...`,
+				complete: () => html`
+					<summary>${this.elementCount - 1} Elements</summary>
+					<json-element .value=${this.json} .expanded=${true}></json-element>
+				`,
+				error: () => html`Error loading the component`,
+			})}
+			</details>
+		`
 	}
 
+	queryTask = new Task(this, {
+		task: async ([viewer, scriptName, query], { signal }) => {
+			const result = await WebViewer.performScript({
+				script: scriptName,
+				params: query,
+				webviewerName: viewer,
+				scriptOption: WebViewer.scriptOptions.SUSPEND,
+				performOnServer: false
+			})
+			console.log('query result', result);
+			return result.data;
+		},
+		args: () => [this.webviewerName, this.layoutName, this.query],
+	});
 
 
 	// helper functions
@@ -137,20 +164,6 @@ export class JsonViewer extends LitElement {
 		return count;
 	}
 
-	async getJson() {
-
-		await WebViewer.performScript({
-			script: `${this.query_script}`,
-			params: {
-				action: 'read',
-				layouts: `${this.layout_name}`,
-				query: this.query,
-			},
-			webviewerName: `${this.webviewer_name}`,
-			scriptOption: WebViewer.scriptOptions.SUSPEND,
-			performOnServer: false
-		})
-	}
 }
 
 customElements.define('json-viewer', JsonViewer);
