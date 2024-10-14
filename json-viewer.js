@@ -65,6 +65,20 @@ export class JsonViewer extends LitElement {
 				display: inline-block;
 				margin: 0;
 			}
+
+			div.loading {
+				margin: 1rem;
+				padding: 1rem;
+			}
+
+			div.error {
+				margin: 1rem;
+				padding: 1rem;
+				border: 1px solid #f00;
+				border-radius: 5px;
+				background-color: #f9f9f9;
+				color: #f00;
+			}
 		`;
 	}
 
@@ -73,11 +87,11 @@ export class JsonViewer extends LitElement {
 		return {
 			json: { type: Object },
 			elementCount: { type: Number, state: true },
-			layoutName: { type: String, reflect: true, attribute: 'layout-name' },
-			queryScript: { type: String, reflect: true, attribute: 'query-script' },
+			scriptName: { type: String, reflect: true, attribute: 'query-script' },
 			query: { type: Object, state: true },
 			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
-			limit: { type: Number, reflect: true },
+			title: { type: String, reflect: true },
+			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 		};
 	}
 
@@ -88,6 +102,8 @@ export class JsonViewer extends LitElement {
 		this.expandAll = false;
 		this.elementCount = 0;
 		this.query = {};
+		this.title = '';
+		this.jsonPath = '';
 
 	}
 
@@ -109,21 +125,21 @@ export class JsonViewer extends LitElement {
 
 		return html`
 			<details open>
+			<summary>${this.title ? this.title : ''}${this.elementCount - 1} Elements</summary>
 			${this.queryTask.render({
-				initial: () => html`Loading...`,
-				pending: () => html`Querying...`,
+				initial: () => html`<div class='loading'>loading the component ...</div>`,
+				pending: () => html`<div class='loading'>getting data ...</div>`,
 				complete: (data) => html`
-					<summary>${this.elementCount - 1} Elements</summary>
 					<json-element .value=${this.json} .expanded=${true}></json-element>
 				`,
-				error: (err) => html`Error loading the component: ${err.message}`,
+				error: (err) => html`<div class='error'>Error loading the component: ${err.message}</div>`,
 			})}
 			</details>
 		`
 	}
 
 	queryTask = new Task(this, {
-		task: async ([viewer, scriptName, query], { signal }) => {
+		task: async ([viewer, scriptName, query, jsonPath], { signal }) => {
 			const result = await WebViewer.performScript({
 				script: scriptName,
 				params: query,
@@ -132,10 +148,11 @@ export class JsonViewer extends LitElement {
 				performOnServer: false
 			})
 			console.log('query result', result);
-			this.json = result.data[0].fieldData.text;
-			return result.data;
+			// get json from jsonPath
+			this.json = eval(`result.${jsonPath}`);
+			return this.json;
 		},
-		args: () => [this.webviewerName, this.scriptName, this.query],
+		args: () => [this.webviewerName, this.scriptName, this.query, this.jsonPath],
 	});
 
 
