@@ -1,6 +1,8 @@
 // import lit from CDN
 import { html, css, LitElement } from 'https://cdn.skypack.dev/lit';
 import { JsonElement } from './json-element.js';
+import { WebViewer } from './FileMaker.js';
+import { Task } from 'https://cdn.skypack.dev/@lit/task';
 
 
 export class JsonViewer extends LitElement {
@@ -70,8 +72,11 @@ export class JsonViewer extends LitElement {
 	static get properties() {
 		return {
 			json: { type: Object },
-			expandAll: { type: Boolean },
-			elementCount: { type: Number },
+			elementCount: { type: Number, state: true },
+			layoutName: { type: String, reflect: true, attribute: 'layout-name' },
+			queryScript: { type: String, reflect: true, attribute: 'query-script' },
+			query: { type: Object, state: true },
+			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
 		};
 	}
 
@@ -80,7 +85,24 @@ export class JsonViewer extends LitElement {
 		super();
 		this.json = {};
 		this.expandAll = false;
+		this.elementCount = 0;
+		this.layoutName = '';
+		this.queryScript = '';
+		this.query = {};
 
+	}
+
+	willUpdate(changedProperties) {
+		if (changedProperties.has('json')) { 
+
+			// convert from string if needed
+			if (typeof this.json === 'string') {
+				this.json = JSON.parse(this.json);
+			}
+
+			// count all elements
+			this.elementCount = this.countAllElements(this.json);
+		}
 	}
 
 
@@ -94,6 +116,41 @@ export class JsonViewer extends LitElement {
 	}
 
 
+
+	// helper functions
+	countAllElements(json) { 
+		let count = 0;
+		function countElements(value) {
+			if (Array.isArray(value)) {
+				count += 1;
+				value.forEach(v => countElements(v));
+			} else if (value === null) {
+				count += 1;
+			} else if (typeof value === 'object') {
+				count += 1;
+				Object.values(value).forEach(v => countElements(v));
+			} else {
+				count += 1;
+			}
+		}
+		countElements(json);
+		return count;
+	}
+
+	async getJson() {
+
+		await WebViewer.performScript({
+			script: `${this.query_script}`,
+			params: {
+				action: 'read',
+				layouts: `${this.layout_name}`,
+				query: this.query,
+			},
+			webviewerName: `${this.webviewer_name}`,
+			scriptOption: WebViewer.scriptOptions.SUSPEND,
+			performOnServer: false
+		})
+	}
 }
 
 customElements.define('json-viewer', JsonViewer);
