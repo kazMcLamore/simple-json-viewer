@@ -4,11 +4,11 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<script
+	<!-- <script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@dev/json-viewer.js"
-		type="module"></script>
-	<!-- <script src="/json-viewer.js" type="module"></script>
-			 <script src="/test-data.js"></script> -->
+		type="module"></script> -->
+	<script src="/json-viewer.js" type="module"></script>
+			 <!-- <script src="/test-data.js"></script> -->
 </head>
 <body>
 
@@ -20,13 +20,13 @@
 			const id = urlParams.get('uuid');
 
 			// set the query info
-			viewer.webViewerName = 'json-viewer'
+			viewer.webviewerName = 'json-viewer'
 			viewer.scriptName = 'sub: execute data api (fxp)'
 			viewer.query = {
 				"action": "read",
 				"layouts": "query: function log v1",
 				"limit": 1,
-				"offset": 0,
+				"offset": 1,
 				"query": [
 					{
 						__id: `==${id}`,

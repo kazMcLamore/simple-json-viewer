@@ -106,12 +106,6 @@ export class JsonViewer extends LitElement {
 
 
 	render() {
-		// return html`
-		// <details open>
-		// 	<summary>${this.elementCount - 1} Elements</summary>
-		// 	<json-element .value=${this.json} .expanded=${true}></json-element>
-		// </details>
-		// `;
 
 		return html`
 			<details open>
@@ -138,9 +132,10 @@ export class JsonViewer extends LitElement {
 				performOnServer: false
 			})
 			console.log('query result', result);
+			this.json = result.data[0].fieldData.text;
 			return result.data;
 		},
-		args: () => [this.webviewerName, this.layoutName, this.query],
+		args: () => [this.webviewerName, this.scriptName, this.query],
 	});
 
 
