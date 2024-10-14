@@ -12,7 +12,7 @@
 </head>
 <body>
 
-	<json-viewer></json-viewer>
+	<json-viewer id="json-viewer"></json-viewer>
 		<script>
 			const viewer = document.querySelector('json-viewer')
 			function setJson (json) {
@@ -22,6 +22,7 @@
 				} else if (typeof json !== 'object') {
 					throw new Error('Invalid JSON type');
 				}
+				console.log('setting json', json);
 				viewer.json = json;
 			}
 

@@ -1,14 +1,14 @@
 // import lit from CDN
 import { html, css, LitElement, nothing } from 'https://cdn.skypack.dev/lit';
 
-import { ContextConsumer } from 'https://cdn.skypack.dev/@lit-labs/context';
-
 import { styleMap } from 'https://cdn.skypack.dev/lit/directives/style-map.js';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
-import { jsonContext } from './constants.js';
 
 export class JsonElement extends LitElement {
 
+	createRenderRoot() {
+		return this;
+	}
 
 	static bracketColorsArray = [
 		'orange',
@@ -26,99 +26,49 @@ export class JsonElement extends LitElement {
 			level: { type: Number }, // nesting level
 			key: { type: String, reflect: true }, // key of the object
 			addComma: { type: Boolean },
-			subElementCount: { type: Number },
+			subElementCount: { type: Number, state: true },
 		}
 	}
 
-	static get styles() {
-		return css`
-			:host{
-				display: block;
-				--string-color: green;
-				--number-color: red;
-				--boolean-color: blue;
-				--null-color: gray;
-				font-family: monospace;
-			}
-			.collapsed {
-				cursor: pointer;
-			}
-			.collapsed:hover {
-				text-decoration: underline;
-			}
-			json-element {
-				display: block;
-				margin-left: 20px;
-				margin-top: 5px;
-			}
-			.leading-char {
-				cursor: pointer;
-			}
-			.trailing-char {
-				cursor: pointer;
-			}
-			.key {
-				cursor: pointer;
-			}
-			.colon {
-				color: #777;
-			}
-			:host(.string) .value {
-				color: var(--string-color);
-			}
-			:host(.number) .value {
-				color: var(--number-color);
-			}
-			:host(.boolean) .value {
-				color: var(--boolean-color);
-			}
-			:host(.null) .value {
-				color: var(--null-color);
-			}
-			span.collapsed {
-				color: #777;
-				border: 1px solid #777;
-				border-radius: 3px;
-				padding: 0 2px;
-				margin: 0 5px;
-			}
-		`;
-	}
 
-	set value(value) {
-		const oldType = this.type;
-		this._value = value;
-
-		// update type from value, 
-		// distinguish between array, object, and null
+	determineType(value) { 
 		if (Array.isArray(value)) {
-			this.type = 'array';
-			this.subElementCount = value.length;
+			return 'array';
 		} else if (value === null) {
-			this.type = 'null';
-			this.subElementCount = 1;
+			return 'null';
 		} else if (typeof value === 'object') {
-			this.type = 'object';
-			this.subElementCount = Object.keys(value).length;
+			return 'object';
 		} else {
-			this.type = typeof value;
-			this.subElementCount = 1;
+			return typeof value;
 		}
-
-		
-
-		// remove previous class
-		if (oldType) {
-			this.classList.remove(oldType);
-		}
-
-		// add new class
-		this.classList.add(this.type);
-		this.requestUpdate();
 	}
 
-	get value() {
-		return this._value;
+	willUpdate(changedProperties) {
+
+		if (changedProperties.has('value')) {
+
+			// remove the old type class
+			const oldType = this.determineType(changedProperties.get('value'))
+			this.type = this.determineType(this.value);
+
+			// add the new type class
+			this.classList.add(this.type);
+
+			// remove the old type class
+			if (this.classList.contains(oldType)) {
+				this.classList.remove(oldType);
+			}
+			
+			// update the subElementCount
+			if (this.type == 'array') {
+				this.subElementCount = this.value.length;
+			} else if (this.type == 'object') {
+				this.subElementCount = Object.keys(this.value).length;
+			} else {
+				this.subElementCount = 0;
+			}
+			
+		}
 	}
 
 	constructor() {
@@ -129,20 +79,21 @@ export class JsonElement extends LitElement {
 		this.key = '';
 		this.level = 0;
 		this.addComma = false;
-		this.elementCount = 0;
-		this._consumer = new ContextConsumer(this, { context: jsonContext });
+		this.subElementCount = 0;
+
 	}
+
 
 	render() {
 		const bracketColor = JsonElement.bracketColorsArray[this.level % JsonElement.bracketColorsArray.length] || 'black';
 
 		return html`
 			${this.key ? this.keyTemplate() : nothing}
-			${this.type === 'array' ? html`<span class='leading-char' style="color:${bracketColor}" @click=${this.toggleExpand}>[</span>` : ""}
-			${this.type === 'object' ? html`<span class='leading-char' style="color:${bracketColor}" @click=${this.toggleExpand}>{</span>` : ""}
+			${this.type === 'array' ? html`<span class='leading-char' style="color:${bracketColor}" @click=${this.toggleExpand}>[</span>` : nothing}
+			${this.type === 'object' ? html`<span class='leading-char' style="color:${bracketColor}" @click=${this.toggleExpand}>{</span>` : nothing}
 			${this.valueTemplate()}
-			${this.type === 'array' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>]</span>` : ""}
-			${this.type === 'object' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>}</span>` : ""}
+			${this.type === 'array' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>]</span>` : nothing}
+			${this.type === 'object' ? html`<span class='trailing-char' style="color:${bracketColor}" @click=${this.toggleExpand}>}</span>` : nothing}
 			${this.addComma ? html`<span>,</span>` : nothing}
 		`
 	}
@@ -217,16 +168,16 @@ export class JsonElement extends LitElement {
 		} else if (!this.expanded && altKey) { 
 			this.collapseAll();
 		}
+
+
 	}
 
 	expandAll() {
-		console.log('expand all');
 		this.expanded = true;
 		// select json-elements AFTER LitElement update is complete
 		// otherwise, the elements will not be found
 		this.updateComplete.then(() => {
-			const elements = this.shadowRoot.querySelectorAll('json-element.object, json-element.array');
-			console.log(this, this.shadowRoot, elements);
+			const elements = this.querySelectorAll('json-element.object, json-element.array');
 			elements.forEach((element) => {
 				element.expanded = true;
 				element.expandAll();
