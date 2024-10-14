@@ -12,33 +12,55 @@
 <body>
 
 	<!-- create the json-viewer -->
-	<json-viewer id="viewer-1" title="Function Result: "
-		webviewer-name="json-viewer" query-script="sub: execute data api (fxp)"
+	<json-viewer id="viewer-1" title="This Result: "
+		webviewer-name="json-viewer"
 		json-path="data[0].fieldData.text" open>
+	</json-viewer>
+
+	<json-viewer id="viewer-2" title="Function Steps: " webviewer-name="json-viewer"
+		json-path="data[0].portalData['Function Step']" open>
+	</json-viewer>
+
+	<json-viewer id="viewer-3" title="Function Variables: " webviewer-name="json-viewer"
+		json-path="data[0].fieldData['unstored variable json']" open>
 	</json-viewer>
 	
 	<script>
 
-	// get id from url parameter
 	const urlParams = new URLSearchParams(window.location.search);
-	const uuid = urlParams.get('uuid');
+		const resultUuid = urlParams.get('resultUuid');
+		const functionUuid = urlParams.get('functionUuid');
 
-
-	// configure query here:
 	const query = {
 		"action": "read",
 		"layouts": "query: function log v1",
 		"limit": 1,
 		"query": [
 			{
-				__id: `==${uuid}`,
+				__id: `==${resultUuid}`,
 			}
 		]
 	}
 
-	// set the query info
-	const viewer = document.querySelector('json-viewer')
+		const query2 = {
+			"action": "read",
+			"layouts": "query: function v2",
+			"limit": 1,
+			"query": [
+				{
+					__id: `==${functionUuid}`,
+				}
+			]
+		}
+
+	const viewer = document.querySelector('#viewer-1')
 	viewer.query = query
+
+	const viewer2 = document.querySelector('#viewer-2')
+	viewer2.query = query2
+
+	const viewer3 = document.querySelector('#viewer-3')
+	viewer3.query = query2
 
 </script>
 </body>

@@ -45,7 +45,7 @@ class WebViewer {
 			}
 
 			// Create a unique function name for the callback
-			const functionName = `callbackFunction${Date.now()}`;
+			const functionName = `callbackFunction${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
 			window[functionName] = (result, parameter, error) => {
 				// Clean up the function after it's called
 				delete window[functionName];

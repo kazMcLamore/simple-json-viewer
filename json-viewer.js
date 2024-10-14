@@ -12,6 +12,7 @@ export class JsonViewer extends LitElement {
 		:host{
 			display: block;
 			font-family: monospace;
+			margin-bottom: 1rem;
 		}
 
 
@@ -105,6 +106,7 @@ export class JsonViewer extends LitElement {
 		this.query = {};
 		this.title = '';
 		this.jsonPath = '';
+		this.scriptName = 'sub: execute data api (fxp)';
 
 	}
 
