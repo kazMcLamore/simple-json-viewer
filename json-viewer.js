@@ -118,11 +118,11 @@ export class JsonViewer extends LitElement {
 			${this.queryTask.render({
 				initial: () => html`Loading...`,
 				pending: () => html`Querying...`,
-				complete: () => html`
+				complete: (data) => html`
 					<summary>${this.elementCount - 1} Elements</summary>
 					<json-element .value=${this.json} .expanded=${true}></json-element>
 				`,
-				error: () => html`Error loading the component`,
+				error: (err) => html`Error loading the component: ${err.message}`,
 			})}
 			</details>
 		`
