@@ -5,15 +5,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
 	<!-- <script
-		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@dev/json-viewer.js"
+		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
 		type="module"></script> -->
 	<script src="/json-viewer.js" type="module"></script>
-			 <!-- <script src="/test-data.js"></script> -->
 </head>
 <body>
 
 	<!-- create the json-viewer -->
-	<json-viewer id="json-viewer" title="Function Result: "
+	<json-viewer id="viewer-1" title="Function Result: "
 		webviewer-name="json-viewer" query-script="sub: execute data api (fxp)"
 		json-path="data[0].fieldData.text" open>
 	</json-viewer>
