@@ -110,7 +110,7 @@ export class JsonElement extends LitElement {
 		const collapsedTemplate = html`
 			<span class="collapsed"
 			@click=${this.toggleExpand}>
-			${this.subElementCount} ${this.type === 'object' ? 'attributes' : 'elements'}</span>`;
+			${this.subElementCount} ${this.type === 'object' ? 'attribute' : 'element'}${this.subElementCount > 1 ? 's' : ''}</span>`;
 
 		let template = nothing;
 
@@ -187,7 +187,7 @@ export class JsonElement extends LitElement {
 
 	collapseAll() {
 		this.expanded = false;
-		const elements = this.shadowRoot.querySelectorAll('json-element.object, json-element.array');
+		const elements = this.querySelectorAll('json-element.object, json-element.array');
 		elements.forEach((element) => {
 			element.expanded = false;
 			element.collapseAll();

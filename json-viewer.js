@@ -1,6 +1,8 @@
 // import lit from CDN
 import { html, css, LitElement } from 'https://cdn.skypack.dev/lit';
 import { JsonElement } from './json-element.js';
+import { WebViewer } from './FileMaker.js';
+import { Task } from 'https://cdn.skypack.dev/@lit/task';
 
 
 export class JsonViewer extends LitElement {
@@ -63,6 +65,20 @@ export class JsonViewer extends LitElement {
 				display: inline-block;
 				margin: 0;
 			}
+
+			div.loading {
+				margin: 1rem;
+				padding: 1rem;
+			}
+
+			div.error {
+				margin: 1rem;
+				padding: 1rem;
+				border: 1px solid #f00;
+				border-radius: 5px;
+				background-color: #f9f9f9;
+				color: #f00;
+			}
 		`;
 	}
 
@@ -70,8 +86,12 @@ export class JsonViewer extends LitElement {
 	static get properties() {
 		return {
 			json: { type: Object },
-			expandAll: { type: Boolean },
-			elementCount: { type: Number },
+			elementCount: { type: Number, state: true },
+			scriptName: { type: String, reflect: true, attribute: 'query-script' },
+			query: { type: Object, state: true },
+			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
+			title: { type: String, reflect: true },
+			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 		};
 	}
 
@@ -80,19 +100,81 @@ export class JsonViewer extends LitElement {
 		super();
 		this.json = {};
 		this.expandAll = false;
+		this.elementCount = 0;
+		this.query = {};
+		this.title = '';
+		this.jsonPath = '';
 
+	}
+
+	willUpdate(changedProperties) {
+		if (changedProperties.has('json')) { 
+
+			// convert from string if needed
+			if (typeof this.json === 'string') {
+				this.json = JSON.parse(this.json);
+			}
+
+			// count all elements
+			this.elementCount = this.countAllElements(this.json);
+		}
 	}
 
 
 	render() {
+
 		return html`
-		<details open>
-			<summary>${this.elementCount - 1} Elements</summary>
-			<json-element .value=${this.json} .expanded=${true}></json-element>
-		</details>
-		`;
+			<details open>
+			<summary>${this.title ? this.title : ''}${this.elementCount - 1} Elements</summary>
+			${this.queryTask.render({
+				initial: () => html`<div class='loading'>loading the component ...</div>`,
+				pending: () => html`<div class='loading'>getting data ...</div>`,
+				complete: (data) => html`
+					<json-element .value=${this.json} .expanded=${true}></json-element>
+				`,
+				error: (err) => html`<div class='error'>Error loading the component: ${err.message}</div>`,
+			})}
+			</details>
+		`
 	}
 
+	queryTask = new Task(this, {
+		task: async ([viewer, scriptName, query, jsonPath], { signal }) => {
+			const result = await WebViewer.performScript({
+				script: scriptName,
+				params: query,
+				webviewerName: viewer,
+				scriptOption: WebViewer.scriptOptions.SUSPEND,
+				performOnServer: false
+			})
+			console.log('query result', result);
+			// get json from jsonPath
+			this.json = eval(`result.${jsonPath}`);
+			return this.json;
+		},
+		args: () => [this.webviewerName, this.scriptName, this.query, this.jsonPath],
+	});
+
+
+	// helper functions
+	countAllElements(json) { 
+		let count = 0;
+		function countElements(value) {
+			if (Array.isArray(value)) {
+				count += 1;
+				value.forEach(v => countElements(v));
+			} else if (value === null) {
+				count += 1;
+			} else if (typeof value === 'object') {
+				count += 1;
+				Object.values(value).forEach(v => countElements(v));
+			} else {
+				count += 1;
+			}
+		}
+		countElements(json);
+		return count;
+	}
 
 }
 

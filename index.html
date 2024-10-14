@@ -5,30 +5,35 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
 	<!-- <script
-		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
+		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@dev/json-viewer.js"
 		type="module"></script> -->
-		<script src="/json-viewer.js" type="module"></script>
-		 <script src="/test-data.js"></script>
+	<script src="/json-viewer.js" type="module"></script>
+			 <!-- <script src="/test-data.js"></script> -->
 </head>
 <body>
 
-	<json-viewer id="json-viewer"></json-viewer>
+	<json-viewer id="json-viewer" title="Function Result: "></json-viewer>
 		<script>
 			const viewer = document.querySelector('json-viewer')
-			function setJson (json) {
-				// check if it's a string
-				if (typeof json === 'string') {
-					json = JSON.parse(json);
-				} else if (typeof json !== 'object') {
-					throw new Error('Invalid JSON type');
-				}
-				console.log('setting json', json);
-				viewer.json = json;
-			}
+			// get id from url parameter
+			const urlParams = new URLSearchParams(window.location.search);
+			const uuid = urlParams.get('uuid');
 
-			if(testJson){
-				setJson(testJson);
+			// set the query info
+			viewer.webviewerName = 'json-viewer'
+			viewer.scriptName = 'sub: execute data api (fxp)'
+			viewer.query = {
+				"action": "read",
+				"layouts": "query: function log v1",
+				"limit": 1,
+				"query": [
+					{
+						__id: `==${uuid}`,
+					}
+				]
 			}
+			viewer.jsonPath = 'data[0].fieldData.text'
+
 		</script>
 </body>
 </html>
