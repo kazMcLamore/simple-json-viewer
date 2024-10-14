@@ -92,6 +92,7 @@ export class JsonViewer extends LitElement {
 			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
 			title: { type: String, reflect: true },
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
+			open: { type: Boolean, reflect: true },
 		};
 	}
 
@@ -124,7 +125,7 @@ export class JsonViewer extends LitElement {
 	render() {
 
 		return html`
-			<details open>
+			<details ?open=${this.open}>
 			<summary>${this.title ? this.title : ''}${this.elementCount - 1} Elements</summary>
 			${this.queryTask.render({
 				initial: () => html`<div class='loading'>loading the component ...</div>`,

@@ -12,28 +12,35 @@
 </head>
 <body>
 
-	<json-viewer id="json-viewer" title="Function Result: "></json-viewer>
-		<script>
-			const viewer = document.querySelector('json-viewer')
-			// get id from url parameter
-			const urlParams = new URLSearchParams(window.location.search);
-			const uuid = urlParams.get('uuid');
+	<!-- create the json-viewer -->
+	<json-viewer id="json-viewer" title="Function Result: "
+		webviewer-name="json-viewer" query-script="sub: execute data api (fxp)"
+		json-path="data[0].fieldData.text" open>
+	</json-viewer>
+	
+	<script>
 
-			// set the query info
-			viewer.webviewerName = 'json-viewer'
-			viewer.scriptName = 'sub: execute data api (fxp)'
-			viewer.query = {
-				"action": "read",
-				"layouts": "query: function log v1",
-				"limit": 1,
-				"query": [
-					{
-						__id: `==${uuid}`,
-					}
-				]
+	// get id from url parameter
+	const urlParams = new URLSearchParams(window.location.search);
+	const uuid = urlParams.get('uuid');
+
+
+	// configure query here:
+	const query = {
+		"action": "read",
+		"layouts": "query: function log v1",
+		"limit": 1,
+		"query": [
+			{
+				__id: `==${uuid}`,
 			}
-			viewer.jsonPath = 'data[0].fieldData.text'
+		]
+	}
 
-		</script>
+	// set the query info
+	const viewer = document.querySelector('json-viewer')
+	viewer.query = query
+
+</script>
 </body>
 </html>
