@@ -4,63 +4,68 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<script
+	<!-- <script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
-		type="module"></script>
-	<!-- <script src="/json-viewer.js" type="module"></script> -->
+		type="module"></script> -->
+		<style>
+			html {
+				background-color: #6D6D6D;
+			}
+			json-viewer {
+				--string-color: #4dff00;
+				--boolean-color: #69c3fb;
+				--number-color: #ff9c9c;
+				--null-color: #b2b2b2;
+				--collapsed-color: #dcdcdc;
+				color: #fff
+			}
+		</style>
+		<script src="/json-viewer.js" type="module"></script>
 </head>
 <body>
 
 	<!-- create the json-viewer -->
-	<json-viewer id="viewer-1" title="This Result: "
-		webviewer-name="json-viewer"
-		json-path="data[0].fieldData.text" open>
-	</json-viewer>
+	<!-- <json-viewer id="viewer-1" title="This Result: "
+		webviewer-name="result viewer"
+		json-path="data[0].fieldData" open></json-viewer> -->
 
-	<json-viewer id="viewer-2" title="Function Steps: " webviewer-name="json-viewer"
-		json-path="data[0].portalData['Function Step']" open>
-	</json-viewer>
+	<json-viewer id="viewer-2" title="HTTP Response: " webviewer-name="result viewer"
+		json-path="data[0].fieldData['Http Response Data::unstored response text']" open></json-viewer>
 
-	<json-viewer id="viewer-3" title="Function Variables: " webviewer-name="json-viewer"
-		json-path="data[0].fieldData['unstored variable json']" open>
-	</json-viewer>
+	<json-viewer id="viewer-3" title="Integrator Request: " webviewer-name="result viewer"
+		json-path="data[0].fieldData['Integrator Request Data::unstored request text']"
+		open></json-viewer>
 	
 	<script>
 
+	const bracketColorsArray = [
+		'#fbe393',
+		'#97fa89',
+		'#9e9eff',
+		'rgb(255, 139, 139)'
+	]
+
 	const urlParams = new URLSearchParams(window.location.search);
-		const resultUuid = urlParams.get('resultUuid');
-		const functionUuid = urlParams.get('functionUuid');
+		const requestUuid = urlParams.get('requestUuid');
 
 	const query = {
 		"action": "read",
-		"layouts": "query: function log v1",
+		"layouts": "query - Integrator Request",
 		"limit": 1,
 		"query": [
 			{
-				__id: `==${resultUuid}`,
+				__id: `==${requestUuid}`,
 			}
 		]
 	}
+	console.log('query', query)
+	const viewers = document.querySelectorAll('json-viewer')
+	viewers.forEach(viewer => {
+		viewer.query = query
+		viewer.bracketColors = bracketColorsArray
+	})
 
-		const query2 = {
-			"action": "read",
-			"layouts": "query: function v2",
-			"limit": 1,
-			"query": [
-				{
-					__id: `==${functionUuid}`,
-				}
-			]
-		}
 
-	const viewer = document.querySelector('#viewer-1')
-	viewer.query = query
-
-	const viewer2 = document.querySelector('#viewer-2')
-	viewer2.query = query2
-
-	const viewer3 = document.querySelector('#viewer-3')
-	viewer3.query = query2
 
 </script>
 </body>

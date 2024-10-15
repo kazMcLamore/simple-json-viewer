@@ -27,6 +27,7 @@ export class JsonElement extends LitElement {
 			key: { type: String, reflect: true }, // key of the object
 			addComma: { type: Boolean },
 			subElementCount: { type: Number, state: true },
+			bracketColors: { type: Array },
 		}
 	}
 
@@ -85,7 +86,8 @@ export class JsonElement extends LitElement {
 
 
 	render() {
-		const bracketColor = JsonElement.bracketColorsArray[this.level % JsonElement.bracketColorsArray.length] || 'black';
+		const array = this.bracketColors ? this.bracketColors : JsonElement.bracketColorsArray;
+		const bracketColor = array[this.level % array.length] || 'black';
 
 		return html`
 			${this.key ? this.keyTemplate() : nothing}
@@ -122,12 +124,13 @@ export class JsonElement extends LitElement {
 				template = html`
 				${Object.keys(this.value).map((key, index) => {
 					return html`
-							<json-element
-								key=${this.type != 'array' ? key : ''} 
-								.value=${this.value[key]} 
-								.level=${this.level + 1}
-								.addComma=${index < Object.keys(this.value).length - 1}>
-								</json-element>
+						<json-element
+							key=${this.type != 'array' ? key : ''} 
+							.value=${this.value[key]} 
+							.level=${this.level + 1}
+							.addComma=${index < Object.keys(this.value).length - 1}
+							.bracketColors=${this.bracketColors}>
+							</json-element>
 						`
 				})}
 				`

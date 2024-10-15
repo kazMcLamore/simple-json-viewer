@@ -13,14 +13,15 @@ export class JsonViewer extends LitElement {
 			display: block;
 			font-family: monospace;
 			margin-bottom: 1rem;
+			--string-color: green;
+			--number-color: red;
+			--boolean-color: blue;
+			--null-color: gray;
+			--collapsed-color: gray;
 		}
 
 
 			json-element {
-				--string-color: green;
-				--number-color: red;
-				--boolean-color: blue;
-				--null-color: gray;
 				display: block;
 				padding: .1rem 0;
 				margin-left: 1rem;
@@ -57,7 +58,7 @@ export class JsonViewer extends LitElement {
 				color: var(--null-color);
 			}
 			span.collapsed {
-				color: #777;
+				color: var(--collapsed-color, #777);
 				border: 0.5px solid #777;
 				border-radius: 3px;
 				padding: 0 .5rem;
@@ -94,6 +95,7 @@ export class JsonViewer extends LitElement {
 			title: { type: String, reflect: true },
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 			open: { type: Boolean, reflect: true },
+			bracketColors: { type: Array },
 		};
 	}
 
@@ -133,7 +135,11 @@ export class JsonViewer extends LitElement {
 				initial: () => html`<div class='loading'>loading the component ...</div>`,
 				pending: () => html`<div class='loading'>getting data ...</div>`,
 				complete: (data) => html`
-					<json-element .value=${this.json} .expanded=${true}></json-element>
+					<json-element
+						.value=${this.json} 
+						.expanded=${true} 
+						.bracketColors=${this.bracketColors}>
+					</json-element>
 				`,
 				error: (err) => html`<div class='error'>Error loading the component: ${err.message}</div>`,
 			})}
@@ -150,8 +156,6 @@ export class JsonViewer extends LitElement {
 				scriptOption: WebViewer.scriptOptions.SUSPEND,
 				performOnServer: false
 			})
-			console.log('query result', result);
-			// get json from jsonPath
 			this.json = eval(`result.${jsonPath}`);
 			return this.json;
 		},
