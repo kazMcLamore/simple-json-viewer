@@ -96,6 +96,7 @@ export class JsonViewer extends LitElement {
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 			open: { type: Boolean, reflect: true },
 			bracketColors: { type: Array },
+			urlParams: { type: Object },
 		};
 	}
 
