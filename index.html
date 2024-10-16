@@ -21,16 +21,18 @@
 			}
 		</style>
 		<script src="/json-viewer.js" type="module"></script>
+		<script src="/json-data.js" type="module"></script>
 </head>
 <body>
 
 	<!-- create the json-viewer -->
 	<!-- <json-viewer id="viewer-1" title="This Result: "
 		webviewer-name="result viewer"
-		json-path="data[0].fieldData" open></json-viewer> -->
-
-	<json-viewer id="viewer-2" title="HTTP Response: " webviewer-name="result viewer"
-		json-path="data[0].fieldData['Http Response Data::unstored response text']" open></json-viewer>
+		json-path="data[0].fieldData['Http Response Data::unstored response text']"
+		query-script="sub: execute data api (fxp)"
+		open>
+		<json-data></json-data>
+	</json-viewer>
 
 	<json-viewer id="viewer-3" title="Integrator Request: " webviewer-name="result viewer"
 		json-path="data[0].fieldData['Integrator Request Data::unstored request text']"
