@@ -7,68 +7,56 @@
 	<!-- <script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
 		type="module"></script> -->
+		<script src="/json-viewer.js" type="module"></script>
+		<!-- <script src="/json-data.js" type="module"></script> -->
 		<style>
-			html {
-				background-color: #6D6D6D;
-			}
-			json-viewer {
-				--string-color: #4dff00;
-				--boolean-color: #69c3fb;
-				--number-color: #ff9c9c;
-				--null-color: #b2b2b2;
-				--collapsed-color: #dcdcdc;
-				color: #fff
+			json-data{
+				display: none;
 			}
 		</style>
-		<script src="/json-viewer.js" type="module"></script>
-		<script src="/json-data.js" type="module"></script>
 </head>
 <body>
 
 	<!-- create the json-viewer -->
 
 	<json-viewer 
-		id="viewer-2" 
-		title="HTTP Response: " 
-		webviewer-name="result viewer"
-		json-path="data[0].fieldData['Http Response Data::unstored response text']"
+		id="viewer-1" 
+		title="Function Vars: " 
+		webviewer-name="json-viewer"
 		query-script="sub: execute data api (fxp)"
+		json-path="data[0].fieldData.text"
 		open>
-		<json-data></json-data>
+		<json-data key="query">
+			 {
+				"action": "read",
+				"layouts": "query: function log v1",
+				"limit": 1,
+				"query": [
+					{
+						"__id": "=={{resultUuid}}"
+					}
+				]
+			 }
+		</json-data>
 	</json-viewer>
 
-	<!-- <json-viewer id="viewer-3" title="Integrator Request: " webviewer-name="result viewer"
-		json-path="data[0].fieldData['Integrator Request Data::unstored request text']"
-		open></json-viewer> -->
+		<json-viewer id="viewer-2" title="Function Steps: " webviewer-name="json-viewer"
+			json-path="data[0].portalData['Function Step']" open>
+			<json-data key="query">
+				{
+					"action": "read",
+					"layouts": "query: function v1",
+					"limit": 1,
+					"query": [
+						{
+							"__id": "=={{functionUuid}}"
+						}
+					]
+				}
+		</json-viewer>
 	
 	<script>
 
-	const bracketColorsArray = [
-		'#fbe393',
-		'#97fa89',
-		'#9e9eff',
-		'rgb(255, 139, 139)'
-	]
-
-	const urlParams = new URLSearchParams(window.location.search);
-		const requestUuid = urlParams.get('requestUuid');
-
-	const query = {
-		"action": "read",
-		"layouts": "query - Integrator Request",
-		"limit": 1,
-		"query": [
-			{
-				__id: `==${requestUuid}`,
-			}
-		]
-	}
-	console.log('query', query)
-	const viewers = document.querySelectorAll('json-viewer')
-	viewers.forEach(viewer => {
-		viewer.query = query
-		viewer.bracketColors = bracketColorsArray
-	})
 
 
 

@@ -3,6 +3,7 @@ import { html, css, LitElement } from 'https://cdn.skypack.dev/lit';
 import { JsonElement } from './json-element.js';
 import { WebViewer } from './FileMaker.js';
 import { Task } from 'https://cdn.skypack.dev/@lit/task';
+import { JsonData } from './json-data.js';
 
 
 export class JsonViewer extends LitElement {
@@ -106,7 +107,7 @@ export class JsonViewer extends LitElement {
 		this.json = {};
 		this.expandAll = false;
 		this.elementCount = 0;
-		this.query = {};
+		// this.query = {};
 		this.title = '';
 		this.jsonPath = '';
 		this.scriptName = 'sub: execute data api (fxp)';
@@ -149,18 +150,37 @@ export class JsonViewer extends LitElement {
 	}
 
 	queryTask = new Task(this, {
-		task: async ([viewer, scriptName, query, jsonPath], { signal }) => {
+		task: async ([query], { signal }) => {
+			
+			if (!this.webviewerName) { 
+				throw new Error('No webviewer name set');
+			}
+
+			if (!this.scriptName) { 
+				throw new Error('No script name set');
+			}
+
+			if (!this.jsonPath) { 
+				throw new Error('No json path set');
+			}
+
+			if (!this.query) { 
+				console.log('No query set');
+				return {};
+			}
+
+
 			const result = await WebViewer.performScript({
-				script: scriptName,
+				script: this.scriptName,
 				params: query,
-				webviewerName: viewer,
+				webviewerName: this.webviewerName,
 				scriptOption: WebViewer.scriptOptions.SUSPEND,
 				performOnServer: false
 			})
-			this.json = eval(`result.${jsonPath}`);
+			this.json = eval(`result.${this.jsonPath}`);
 			return this.json;
 		},
-		args: () => [this.webviewerName, this.scriptName, this.query, this.jsonPath],
+		args: () => [  this.query ],
 	});
 
 

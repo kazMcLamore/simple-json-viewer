@@ -35,21 +35,17 @@ export class JsonData extends LitElement {
 	saveSlottedText() {
 		try {
 			const slot = this.shadowRoot.querySelector('slot');
-			const textNode = slot.assignedNodes()[0];
+			const textNodes = slot.assignedNodes();
+			const text = textNodes.map(node => node.textContent).join('');
+			let textTrimmed = text.trim();
 			// save object of url variables
 			const urlParams = new URLSearchParams(window.location.search);
-			// loop through entries in urlParams
-			const urlVars = {};
+			// substitute url variables in the text
 			for (const [key, value] of urlParams) {
-				urlVars[key] = value;
+				textTrimmed = textTrimmed.replace(`{{${key}}}`, value);
 			}
-			// get the text content of the slot,
-			// this will be a template literal
-			// example = `Hello ${urlVars.name}`
-			const text = textNode.textContent;
-			// evaluate the template literal
-			const json = eval('`' + text + '`');
 
+			const json = JSON.parse(textTrimmed);
 			this.data = json;
 		} catch (error) {
 			console.error('Error parsing JSON', error);
