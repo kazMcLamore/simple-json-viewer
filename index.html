@@ -4,62 +4,69 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
-	<!-- <script
+	<!-- import the viewer component from our repo -->
+	<script
 		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
-		type="module"></script> -->
-		<script src="/json-viewer.js" type="module"></script>
-		<!-- <script src="/json-data.js" type="module"></script> -->
+		type="module"></script>
+
 		<style>
-			json-data{
+			/* to ensure that this doesn't flash on-screen */
+			html {
+				background-color: #F5F5F5;
+			}
+			
+			json-data {
 				display: none;
 			}
+
 		</style>
+
 </head>
 <body>
 
 	<!-- create the json-viewer -->
 
 	<json-viewer 
-		id="viewer-1" 
-		title="Function Vars: " 
-		webviewer-name="json-viewer"
+		title="Test Data: " webviewer-name="test-viewer"
 		query-script="sub: execute data api (fxp)"
-		json-path="data[0].fieldData.text"
-		open>
+		json-path="data[0].fieldData" open>
 		<json-data key="query">
 			 {
 				"action": "read",
-				"layouts": "query: function log v1",
-				"limit": 1,
+				"layouts": "query: test data v1",
+				"limit": 100,
 				"query": [
 					{
-						"__id": "=={{resultUuid}}"
+						"__id": "*"
 					}
 				]
 			 }
 		</json-data>
 	</json-viewer>
-
-		<json-viewer id="viewer-2" title="Function Steps: " webviewer-name="json-viewer"
-			json-path="data[0].portalData['Function Step']" open>
-			<json-data key="query">
+	<fm-portal>
+		<json-data key="query">
+			<!-- json -->
+			{
+			"action": "read",
+				"layouts": "query: test data v1",
+				"limit": 1,
+				"query": [
 				{
-					"action": "read",
-					"layouts": "query: function v1",
-					"limit": 1,
-					"query": [
-						{
-							"__id": "=={{functionUuid}}"
+						"__id": "{{resultUuid}}"
 						}
-					]
-				}
-		</json-viewer>
-	
-	<script>
+						]
+						}
+		</json-data>
+		<table>
+			<thead>
+				<tr>
+					<th json-path="fieldData['__id']"></th>
+				</tr>
+			</thead>
+		</table>
+
+	</fm-portal>
 
 
-
-
-</script>
 </body>
 </html>

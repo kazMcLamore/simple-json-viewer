@@ -1,3 +1,5 @@
+import { Task } from 'https://cdn.skypack.dev/@lit/task';
+
 class WebViewer {
 	// Default script name for callback
 	static callbackScript = 'callback (jsb)';
@@ -94,6 +96,54 @@ class WebViewer {
 			);
 		});
 	}
+}
+
+class FmQueryController {
+
+	host;
+	query;
+	response;
+	scriptName;
+	webviewerName;
+	queryTask;
+
+
+	constructor(host, options) {
+		const { scriptName, webviewerName } = options
+		if (!scriptName) {
+			throw new Error('No script name provided');
+		}
+		if (!webviewerName) {
+			throw new Error('No webviewer name provided');
+		}
+		// Store a reference to the host
+		this.host = host;
+		// Register for lifecycle updates
+		host.addController(this);
+
+		this.scriptName = scriptName;
+		this.webviewerName = webviewerName;
+
+		// Create a task for the query
+		this.queryTask = new Task(this, {
+			task: async ([query], { signal }) => {
+				// Perform the FileMaker script
+				const result = await WebViewer.performScript({
+					script: this.scriptName,
+					params: query,
+					webviewerName: this.webviewerName,
+					scriptOption: WebViewer.scriptOptions.SUSPEND,
+					performOnServer: false,
+				});
+				// Store the response
+				this.response = result;
+				// Return the response
+				return this.response;
+			},
+			args: () => [this.query],
+		});
+	}
+
 }
 
 export { WebViewer }; // Export the WebViewer class for use in other modules
