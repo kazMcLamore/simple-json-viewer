@@ -20,6 +20,7 @@ export class JsonData extends LitElement {
 	willUpdate(changedProperties) {
 		if (changedProperties.has('data')) {
 			const { key, data } = this;
+			console.log('adding to parent')
 			const parent = this.parentElement;
 			// add the data to the parent element
 			parent[key] = data;

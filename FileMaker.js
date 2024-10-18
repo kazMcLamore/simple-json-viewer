@@ -63,7 +63,7 @@ class WebViewer {
 
 				// Log the result and error if logging is enabled
 				if (WebViewer.loggingEnabled) {
-					console.log('FileMaker callback:', { result: parsedResult, error: parsedError });
+					console.log('FileMaker callback:', { request: params, result: parsedResult, error: parsedError });
 				}
 
 				// Check for errors in the parsed result
@@ -101,49 +101,140 @@ class WebViewer {
 class FmQueryController {
 
 	host;
-	query;
-	response;
-	scriptName;
-	webviewerName;
 	queryTask;
+	limit = 10;
+	offset = 1;
+	pageNumber = 1;
+	totalPages = 1;
+	foundCount = 0;
+	sortFields = [];
+	query = [];
+
+	set query(query) { 
+		if (!this._query) {
+			this.firstQuery = query;
+		}
+		this._query = query;
+	}
+
+	get query() { 
+		return this._query;
+	}
 
 
-	constructor(host, options) {
-		const { scriptName, webviewerName } = options
-		if (!scriptName) {
-			throw new Error('No script name provided');
-		}
-		if (!webviewerName) {
-			throw new Error('No webviewer name provided');
-		}
+	constructor(host) {
+
 		// Store a reference to the host
 		this.host = host;
 		// Register for lifecycle updates
 		host.addController(this);
-
-		this.scriptName = scriptName;
-		this.webviewerName = webviewerName;
+		console.log('registering controller', this);
 
 		// Create a task for the query
-		this.queryTask = new Task(this, {
-			task: async ([query], { signal }) => {
+		this.queryTask = new Task(host, {
+			task: async ([query]) => {
+				// Check if the query is empty
+				if (!query) {
+					return;
+				}
+				if (query.limit) {
+					this.limit = query.limit;
+				}
+				if (query.offset) {
+					this.offset = query.offset;
+				}
+				if (query.sort) { 
+					this.sortFields = query.sort;
+				}
+				if (query.query) {
+					this.query = query.query;
+				}
+
 				// Perform the FileMaker script
 				const result = await WebViewer.performScript({
-					script: this.scriptName,
+					script: this.host.scriptName,
 					params: query,
-					webviewerName: this.webviewerName,
+					webviewerName: this.host.webviewerName,
 					scriptOption: WebViewer.scriptOptions.SUSPEND,
 					performOnServer: false,
 				});
+
+				if (result.dataInfo) {
+					this.foundCount = result.dataInfo.foundCount;
+					this.totalPages = Math.ceil(this.foundCount / this.limit);
+				}
+
 				// Store the response
-				this.response = result;
+				host.dataApiResponse = result;
+
 				// Return the response
-				return this.response;
+				return result;
 			},
-			args: () => [this.query],
+			args: () => [host.dataApiQuery],
 		});
 	}
 
+	getPage(pageNumber) {
+		// ensure page is within bounds
+		if (pageNumber < 1) {
+			pageNumber = 1;
+		}
+
+		if (pageNumber > this.totalPages) {
+			pageNumber = this.totalPages;
+		}
+
+		this.pageNumber = pageNumber;
+		
+		this.offset = Math.max((pageNumber - 1) * this.limit, 1);
+		this.host.dataApiQuery = { ...this.host.dataApiQuery, limit: this.limit, offset: this.offset };
+		this.queryTask.run();
+	}
+
+	nextPage() {
+		this.getPage(this.pageNumber + 1);
+	}
+
+	previousPage() {
+		this.getPage(this.pageNumber - 1);
+	}
+
+	sortBy(fieldName, sortOrder) {
+		// check if field is already sorted
+		const index = this.sortFields.findIndex((sortField) => sortField.fieldName === fieldName);
+
+		if (index > -1 && sortOrder ) {
+			// reverse the sort direction
+			this.sortFields[index].sortOrder = sortOrder;
+		} else if (index > -1 ) {
+			// remove the field from the sort
+			this.sortFields.splice(index, 1);
+		} else {
+			// add the field to the sort
+			this.sortFields.push({ fieldName, sortOrder: sortOrder || 'ascend' });
+		}
+		this.pageNumber = 1;
+		const nextQuery = { ...this.host.dataApiQuery, offset: 1 };
+
+		if (this.sortFields.length) {
+			nextQuery.sort = this.sortFields;
+		} else {
+			delete nextQuery.sort;
+		}
+
+		this.host.dataApiQuery = nextQuery;
+		this.queryTask.run();
+	}
+	filter(query) {
+		this.pageNumber = 1;
+		// merge the new query with the existing query
+		const newQuery = [];
+		this.firstQuery.forEach((item) => {
+			newQuery.push({ ...query, ...item });
+		});
+		this.host.dataApiQuery = { ...this.host.dataApiQuery, query: newQuery };
+		this.queryTask.run();
+	}
 }
 
-export { WebViewer }; // Export the WebViewer class for use in other modules
+export { WebViewer, FmQueryController }; // Export the WebViewer class for use in other modules
