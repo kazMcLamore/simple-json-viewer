@@ -1,4 +1,6 @@
 import { LitElement, html, css, nothing } from 'https://cdn.skypack.dev/lit-element';
+import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
+import { render } from 'https://cdn.skypack.dev/lit-html';
 import { FmQueryController } from './FileMaker.js';
 
 
@@ -142,29 +144,16 @@ export class FmPortal extends LitElement {
 		const table = this.table;
 		const tableHeader = table.querySelector('thead');
 		const headers = tableHeader.querySelectorAll('th');
-		const searchRow = document.createElement('tr');
-		searchRow.id = 'search-row';
-		if (this.showSearchRow) { 
-			headers.forEach(header => {
-				const td = document.createElement('td');
-				if (header.hasAttribute('is-searchable') && header.hasAttribute('field-name')) {
-					const input = document.createElement('input');
-					input.setAttribute('type', 'text');
-					input.setAttribute('field-name', header.getAttribute('field-name'));
-					input.addEventListener('change', this.filterPortal.bind(this));
-					td.appendChild(input);
-				 }
-				searchRow.appendChild(td);
-			})
-		}
+		const searchRow = html`${cache(this.showSearchRow ?  this.searchRowTemplate(): nothing)}`;
 
 		// upsert the tbody
 		const tableBody = table.querySelector('tbody') || document.createElement('tbody');
 
 		// remove rows
 		tableBody.replaceChildren();
+		console.log('headers', headers, searchRow, this.showSearchRow);
 		if (this.showSearchRow) { 
-			tableBody.appendChild(searchRow);
+			render(searchRow, tableBody);
 		}
 
 		// this will have been set by the controller
@@ -249,6 +238,7 @@ export class FmPortal extends LitElement {
 	}
 
 	filterPortal(e) {
+		const value = e.target.value;
 		const searchRow = this.table.querySelector('#search-row');
 		const inputs = searchRow.querySelectorAll('input');
 		const query = {};
@@ -260,6 +250,19 @@ export class FmPortal extends LitElement {
 			query[fieldName] = input.value;
 		})
 		this.queryController.filter(query);
+	}
+
+	searchRowTemplate() {
+		return html`
+			<tr id='search-row'>
+				${this.headersArray.map(header => {
+			if (header.hasAttribute('is-searchable')) {
+				return html`<td><input type='text' field-name=${header.getAttribute('field-name')} @change=${this.filterPortal}></td>`
+			}
+			return html`<td></td>`;
+		})}
+			</tr>
+		`
 	}
 }
 
