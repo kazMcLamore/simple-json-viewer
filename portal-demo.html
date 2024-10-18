@@ -26,18 +26,6 @@
 </head>
 
 <body>
-
-	<!-- create the json-viewer -->
-
-	<json-viewer title="Test Data: " webviewer-name="test-viewer"
-		query-script="sub: execute data api (fxp)" json-path="layouts" open>
-		<json-data key="dataApiQuery">
-			{
-			"action": "metaData",
-			"layouts": ""
-			}
-		</json-data>
-	</json-viewer>
 	<fm-portal id='portal' query-script="sub: execute data api (fxp)"
 		webviewer-name="test-viewer" json-path="data">
 		<json-data key="dataApiQuery">
@@ -45,7 +33,7 @@
 			{
 				"action": "read",
 				"layouts": "query: function log v1",
-				"limit": 10,
+				"limit": 5,
 				"query": [
 					{
 						"__id":"*"
@@ -58,8 +46,8 @@
 				<tr>
 					<th json-path="recordId">id</th>
 					<th json-path="modId">mod</th>
-					<th json-path="fieldData" field-name="duration">duration</th>
-					<th json-path="fieldData" field-name="start">start</th>
+					<th json-path="fieldData" field-name="duration" is-searchable>duration</th>
+					<th json-path="fieldData" field-name="start" is-searchable>start</th>
 					<th json-path="fieldData" field-name="end">end</th>
 					<th json-path="fieldData" field-name="creator">nonsense</th>
 				</tr>

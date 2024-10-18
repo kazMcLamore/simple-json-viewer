@@ -8,12 +8,13 @@ export class FmPortal extends LitElement {
 		return css`
 			:host {
 				position: relative;
-				height: 100%;
-				width: 100%;
 				padding: 1rem;
 			}
 			.loading {
-				display: block;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: .5rem .5rem;
 			}
 			.error {
 				color: red;
@@ -22,22 +23,21 @@ export class FmPortal extends LitElement {
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				padding: .5rem 1rem;
+				padding: .5rem .5rem;
 			}
 			div#record-info {
 				text-align: center;
 				padding: 1rem 0;
-				position: sticky;
-				bottom: 0;
 				background-color: inherit;
 				width: 100%;
 
 			}
-			button.sort {
+			.sort {
 				cursor: pointer;
-				border: 1px solid black;
+				border: 1px solid rgb(183, 183, 183);
 				border-radius: 5px;
-				padding: .5rem;
+				padding: .2rem .5rem;
+				color: rgb(183, 183, 183);
 			}
 			button.sort[sort-direction=ascend]:after {
 				content: '▲';
@@ -49,8 +49,8 @@ export class FmPortal extends LitElement {
 			}
 			button {
 				cursor: pointer;
-				padding: .5rem 1rem;
-				border: 1px solid black;
+				padding: .3rem .5rem;
+				border: 1px solid rgb(183, 183, 183);
 				border-radius: 5px;
 				background-color: inherit;
 			}
@@ -60,8 +60,8 @@ export class FmPortal extends LitElement {
 			div#sort-buttons {
 				display: flex;
 				justify-content: flex-start;
-				padding: .5rem 1rem;
-				gap: .5rem;
+				padding: .3rem .5rem;
+				gap: .2rem;
 			}
 		`
 	}
@@ -85,6 +85,7 @@ export class FmPortal extends LitElement {
 		super();
 		this.queryController = new FmQueryController(this);
 		this.headersArray = [];
+		this.showSearchRow = false;
 	}
 
 	connectedCallback() {
@@ -92,43 +93,46 @@ export class FmPortal extends LitElement {
 		const headers = this.table.querySelectorAll('th[field-name]');
 		headers.forEach((header, index) => {
 			header.addEventListener('click', this.sortByColumn.bind(this));
+			if (header.hasAttribute('is-searchable')) { 
+				this.showSearchRow = true;
+			}
 			this.headersArray.push(header);
 		});
 	}
 
 	render() {
-		return html`
-			${this.queryController.queryTask.render({
-			initial: () => html`<div class='loading'>loading the component ...</div><slot style="display: none"></slot>`,
-			pending: () => html`<div class='loading'>getting data ...</div><slot></slot>`,
-			complete: () => [
-				html`
-					<div id='sort-buttons'>
-						${this.queryController.sortFields.map(sortField => {
-					const fieldName = sortField.fieldName;
-					const direction = sortField.sortOrder;
-					// get the header for this fieldname
-					const header = this.table.querySelector(`th[field-name=${fieldName}]`);
-					const headerText = header.textContent;
+		return [
+			html`
+				<div id='sort-buttons'><span class='sort'>Sort by:</span>
+				${this.queryController.sortFields.map(sortField => {
+				const fieldName = sortField.fieldName;
+				const direction = sortField.sortOrder;
+				// get the header for this fieldname
+				const header = this.table.querySelector(`th[field-name=${fieldName}]`);
+				const headerText = header.textContent;
 
-					return html`<button class="sort" field-name=${fieldName} sort-direction=${direction} @click=${this.removeSortField}>${headerText}
+				return html`<button class="sort" field-name=${fieldName} sort-direction=${direction} @click=${this.removeSortField}>${headerText}
 						</button>`
 				})}
-					</div>`,
-				this.populateTable(),
-				this.error ? html`<div class='error'>${this.error}</div>` : nothing,
-				html`<div id="page-buttons">
-					<button @click=${this.previousPage}>prev</button>
-					<span id='page-number-span'>Page ${this.queryController.pageNumber} of ${this.queryController.totalPages}</span>
-					<button @click=${this.nextPage}>next</button>
-					</div>
-						<slot></slot>
-					<div id="record-info"><span id='record-count-span'>${this.queryController.offset}...${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
-					`
+				</div>`,
+			html`<div id="page-buttons">
+				<button @click=${this.previousPage}>prev</button>
+				<span id='page-number-span'>Page ${this.queryController.pageNumber} of ${this.queryController.totalPages}</span>
+				<button @click=${this.nextPage}>next</button>
+				</div>
+					<slot></slot>
+				<div id="record-info"><span id='record-count-span'>${this.queryController.offset}...${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
+				`,
+			html`
+				${this.queryController.queryTask.render({
+				initial: () => html`<div class='loading'>loading the component ...</div><slot style="display: none"></slot>`,
+				pending: () => html`<div class='loading'>getting data ...</div><slot></slot>`,
+				complete: () => [,
+					this.populateTable(),
 			],
 			error: (error) => html`<div class='error'>${error}</div><slot></slot>`,
 		})}
-		`
+		`,]
 	}
 
 	populateTable() {
@@ -138,12 +142,30 @@ export class FmPortal extends LitElement {
 		const table = this.table;
 		const tableHeader = table.querySelector('thead');
 		const headers = tableHeader.querySelectorAll('th');
+		const searchRow = document.createElement('tr');
+		searchRow.id = 'search-row';
+		if (this.showSearchRow) { 
+			headers.forEach(header => {
+				const td = document.createElement('td');
+				if (header.hasAttribute('is-searchable') && header.hasAttribute('field-name')) {
+					const input = document.createElement('input');
+					input.setAttribute('type', 'text');
+					input.setAttribute('field-name', header.getAttribute('field-name'));
+					input.addEventListener('change', this.filterPortal.bind(this));
+					td.appendChild(input);
+				 }
+				searchRow.appendChild(td);
+			})
+		}
 
 		// upsert the tbody
 		const tableBody = table.querySelector('tbody') || document.createElement('tbody');
 
 		// remove rows
 		tableBody.replaceChildren();
+		if (this.showSearchRow) { 
+			tableBody.appendChild(searchRow);
+		}
 
 		// this will have been set by the controller
 		const data = this.dataApiResponse
@@ -212,14 +234,11 @@ export class FmPortal extends LitElement {
 				break
 		}
 
-
 		this.queryController.sortBy(fieldName, column.getAttribute('sort-direction'));
-
 
 	}
 
 	removeSortField(e) {
-		console.log('removing sort field');
 		const fieldName = e.target.getAttribute('field-name');
 		this.queryController.sortBy(fieldName);
 
@@ -227,6 +246,20 @@ export class FmPortal extends LitElement {
 		const column = this.table.querySelector(`th[field-name=${fieldName}]`);
 		// remove the sort direction
 		column.removeAttribute('sort-direction');
+	}
+
+	filterPortal(e) {
+		const searchRow = this.table.querySelector('#search-row');
+		const inputs = searchRow.querySelectorAll('input');
+		const query = {};
+		inputs.forEach(input => {
+			if (!input.value) {
+				return;
+			}
+			const fieldName = input.getAttribute('field-name');
+			query[fieldName] = input.value;
+		})
+		this.queryController.filter(query);
 	}
 }
 

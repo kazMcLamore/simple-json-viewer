@@ -108,18 +108,6 @@ class FmQueryController {
 	totalPages = 1;
 	foundCount = 0;
 	sortFields = [];
-	query = [];
-
-	set query(query) { 
-		if (!this._query) {
-			this.firstQuery = query;
-		}
-		this._query = query;
-	}
-
-	get query() { 
-		return this._query;
-	}
 
 
 	constructor(host) {
@@ -146,7 +134,7 @@ class FmQueryController {
 				if (query.sort) { 
 					this.sortFields = query.sort;
 				}
-				if (query.query) {
+				if (query.query.length) {
 					this.query = query.query;
 				}
 
@@ -172,6 +160,16 @@ class FmQueryController {
 			},
 			args: () => [host.dataApiQuery],
 		});
+	}
+
+	set query(value) {
+		if(!this._query && value.length) {
+			this.firstQuery = value;
+		}
+	}
+
+	get query() { 
+		return this._query;
 	}
 
 	getPage(pageNumber) {
@@ -225,6 +223,7 @@ class FmQueryController {
 		this.host.dataApiQuery = nextQuery;
 		this.queryTask.run();
 	}
+
 	filter(query) {
 		this.pageNumber = 1;
 		// merge the new query with the existing query
@@ -232,6 +231,7 @@ class FmQueryController {
 		this.firstQuery.forEach((item) => {
 			newQuery.push({ ...query, ...item });
 		});
+		console.log('new query', newQuery, query, this.firstQuery);
 		this.host.dataApiQuery = { ...this.host.dataApiQuery, query: newQuery };
 		this.queryTask.run();
 	}
