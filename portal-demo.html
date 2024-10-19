@@ -22,38 +22,28 @@
 			display: none;
 		}
 	</style>
-
 </head>
 
 <body>
 	<fm-portal id='portal' query-script="sub: execute data api (fxp)"
-		webviewer-name="test-viewer" json-path="data">
+						 webviewer-name="test-viewer" json-path="data">
 		<json-data key="dataApiQuery">
-			<!-- json -->
-			{
-				"action": "read",
-				"layouts": "query: function log v1",
-				"limit": 5,
-				"query": [
-					{
-						"__id":"*"
-					}
-				]
-			}
-		</json-data>
+			<!-- json --> { "action": "read", "layouts": "query: function log v1",
+			"limit": 15, "query": [ { "__id":"*" } ] } </json-data>
 		<table>
 			<thead>
 				<tr>
 					<th json-path="recordId">id</th>
 					<th json-path="modId">mod</th>
-					<th json-path="fieldData" field-name="duration" is-searchable>duration</th>
+					<th json-path="fieldData" field-name="duration" is-searchable>duration
+					</th>
 					<th json-path="fieldData" field-name="start" is-searchable>start</th>
 					<th json-path="fieldData" field-name="end">end</th>
-					<th json-path="fieldData" field-name="creator">nonsense</th>
+					<th json-path="fieldData" field-name="creator" is-searchable>nonsense</th>
+					<th script-name="dialog" label="test">custom</th>
 				</tr>
 			</thead>
 		</table>
-
 	</fm-portal>
 
 

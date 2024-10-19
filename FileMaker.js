@@ -100,17 +100,14 @@ class WebViewer {
 
 class FmQueryController {
 
-	host;
-	queryTask;
-	limit = 10;
-	offset = 1;
-	pageNumber = 1;
-	totalPages = 1;
-	foundCount = 0;
-	sortFields = [];
-
-
 	constructor(host) {
+
+		this.limit = 10;
+		this.offset = 1;
+		this.pageNumber = 1;
+		this.totalPages = 1;
+		this.foundCount = 0;
+		this.sortFields = [];
 
 		// Store a reference to the host
 		this.host = host;
@@ -166,6 +163,7 @@ class FmQueryController {
 		if(!this._query && value.length) {
 			this.firstQuery = value;
 		}
+		this._query = value;
 	}
 
 	get query() { 
@@ -231,10 +229,11 @@ class FmQueryController {
 		this.firstQuery.forEach((item) => {
 			newQuery.push({ ...query, ...item });
 		});
-		console.log('new query', newQuery, query, this.firstQuery);
-		this.host.dataApiQuery = { ...this.host.dataApiQuery, query: newQuery };
+		this.host.dataApiQuery = { ...this.host.dataApiQuery, query: newQuery, offset: 1 };
 		this.queryTask.run();
 	}
+
+	performScript = WebViewer.performScript.bind(this);
 }
 
 export { WebViewer, FmQueryController }; // Export the WebViewer class for use in other modules

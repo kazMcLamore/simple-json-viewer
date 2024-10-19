@@ -36,3 +36,11 @@ th, td {
 	text-align: left;
 	padding: 4px;
 }
+
+
+table input {
+	width: 100%;
+	background-color: inherit;
+	border: none;
+	
+}

@@ -10,13 +10,16 @@ export class FmPortal extends LitElement {
 		return css`
 			:host {
 				position: relative;
-				padding: 1rem;
+				white-space: nowrap;
 			}
-			.loading {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				padding: .5rem .5rem;
+			div.loading {
+				position: absolute;
+				top: -27px;
+				left: 55px;
+				z-index: 100;
+				padding: .2rem .5rem;
+				border: 1px solid rgb(183, 183, 183);
+				border-radius: 5px;
 			}
 			.error {
 				color: red;
@@ -25,11 +28,11 @@ export class FmPortal extends LitElement {
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
-				padding: .5rem .5rem;
+				padding: .2rem .5rem;
 			}
 			div#record-info {
 				text-align: center;
-				padding: 1rem 0;
+				padding: .5rem 0 0 0;
 				background-color: inherit;
 				width: 100%;
 
@@ -65,6 +68,10 @@ export class FmPortal extends LitElement {
 				padding: .3rem .5rem;
 				gap: .2rem;
 			}
+			#page-selector {
+				padding: .2rem;
+				margin-left: .5rem;
+			}
 		`
 	}
 
@@ -95,7 +102,7 @@ export class FmPortal extends LitElement {
 		const headers = this.table.querySelectorAll('th[field-name]');
 		headers.forEach((header, index) => {
 			header.addEventListener('click', this.sortByColumn.bind(this));
-			if (header.hasAttribute('is-searchable')) { 
+			if (header.hasAttribute('is-searchable')) {
 				this.showSearchRow = true;
 			}
 			this.headersArray.push(header);
@@ -103,96 +110,83 @@ export class FmPortal extends LitElement {
 	}
 
 	render() {
+		const task = this.queryController.queryTask;
 		return [
+			this.sortRowTemplate(this.queryController.sortFields),
+			this.pageButtonsTemplate(),
 			html`
-				<div id='sort-buttons'><span class='sort'>Sort by:</span>
-				${this.queryController.sortFields.map(sortField => {
-				const fieldName = sortField.fieldName;
-				const direction = sortField.sortOrder;
-				// get the header for this fieldname
-				const header = this.table.querySelector(`th[field-name=${fieldName}]`);
-				const headerText = header.textContent;
-
-				return html`<button class="sort" field-name=${fieldName} sort-direction=${direction} @click=${this.removeSortField}>${headerText}
-						</button>`
-				})}
-				</div>`,
-			html`<div id="page-buttons">
-				<button @click=${this.previousPage}>prev</button>
-				<span id='page-number-span'>Page ${this.queryController.pageNumber} of ${this.queryController.totalPages}</span>
-				<button @click=${this.nextPage}>next</button>
-				</div>
-					<slot></slot>
-				<div id="record-info"><span id='record-count-span'>${this.queryController.offset}...${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
-				`,
-			html`
-				${this.queryController.queryTask.render({
+				${task.render({
 				initial: () => html`<div class='loading'>loading the component ...</div><slot style="display: none"></slot>`,
 				pending: () => html`<div class='loading'>getting data ...</div><slot></slot>`,
-				complete: () => [,
-					this.populateTable(),
-			],
-			error: (error) => html`<div class='error'>${error}</div><slot></slot>`,
-		})}
-		`,]
+				complete: (data) => [
+					this.populateTable(data),
+					html`<slot></slot>`,
+				],
+				error: (error) => [
+					html`<div class='loading error'>error: ${error.error.default_message} code: ${error.error.code}</div>`,
+					this.populateTable([]),
+					html`<slot></slot>`,
+				],
+			})}
+		`,
+			html`<div id="record-info"><span id='record-count-span'>${this.queryController.offset}...${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
+		`]
 	}
 
-	populateTable() {
-		this.error = '';
+	populateTable(data) {
 
 		// get the table for its headers
 		const table = this.table;
 		const tableHeader = table.querySelector('thead');
-		const headers = tableHeader.querySelectorAll('th');
-		const searchRow = html`${cache(this.showSearchRow ?  this.searchRowTemplate(): nothing)}`;
+		const headers = Array.from(tableHeader.querySelectorAll('th'));
+		const searchRow = html`${cache(this.showSearchRow ? this.searchRowTemplate(headers) : nothing)}`;
 
 		// upsert the tbody
 		const tableBody = table.querySelector('tbody') || document.createElement('tbody');
+		table.appendChild(tableBody);
 
-		// remove rows
-		tableBody.replaceChildren();
-		console.log('headers', headers, searchRow, this.showSearchRow);
-		if (this.showSearchRow) { 
-			render(searchRow, tableBody);
-		}
+		const rows = eval(`data.${this.jsonPath}`) || [];
 
-		// this will have been set by the controller
-		const data = this.dataApiResponse
+		// generate rows template
+		const rowsTemplate = rows.reduce((acc, row, index) => {
+			const rowId = row.recordId;
+			const modId = row.modId;
 
-		const rows = eval(`data.${this.jsonPath}`);
-		if (!rows) {
-			this.error = `No data found at path: ${this.jsonPath}`;
-			console.error('No data found', this);
-			return;
-		}
-
-		rows.forEach(row => {
-			// create a row
-			const tr = document.createElement('tr');
-			headers.forEach(header => {
-				// create a td
-				const td = document.createElement('td');
-				// get the path from the header
+			const rowTemplate = headers.reduce((acc, header) => {
 				const path = header.getAttribute('json-path');
 				const field = header.getAttribute('field-name');
-				// set the text content of the td to the value at the path
+				const scriptName = header.getAttribute('script-name');
+				const label = header.getAttribute('label');
 				const evalString = `row.${path}` + (field ? `['${field}']` : '');
-				try {
-					td.textContent = eval(evalString);
-				} catch (error) {
-					console.error(`Error evaluating string: ${evalString}`);
-					console.error(error);
-					td.textContent = 'Error';
-					return;
+				const value = eval(evalString);
+
+				const clickHandler = () => {
+					this.queryController.performScript({
+						script: scriptName,
+						params: { data: row, index, webviewer: this.webviewerName },
+						webviewerName: this.webviewerName,
+					})
 				}
-				// append the td to the tr
-				tr.appendChild(td);
-			})
-			// append the tr to the tbody
-			tableBody.appendChild(tr);
-		})
-		// append the updated tbody to the table
-		table.appendChild(tableBody);
+
+				if (scriptName) {
+					return html`${acc}<td @click=${clickHandler}>${label}</td>`
+				} else {
+					return html`${acc}<td>${value}</td>`
+				}
+
+
+			}, html``);
+
+			return html`${acc}<tr record-id=${rowId} mod-id=${modId} record-data=${row}>${rowTemplate}</tr>`
+
+		}, html``);
+
+		// render the table
+		render(html`
+			${searchRow}
+			${rowsTemplate}
+		`, tableBody);
+
 	}
 
 	nextPage() {
@@ -200,6 +194,12 @@ export class FmPortal extends LitElement {
 	}
 	previousPage() {
 		this.queryController.previousPage();
+	}
+
+	changePage(e) {
+		console.log('change page', e.target.value);
+		const pageNumber = e.target.value;
+		this.queryController.getPage(pageNumber);
 	}
 
 	sortByColumn(e) {
@@ -239,6 +239,7 @@ export class FmPortal extends LitElement {
 
 	filterPortal(e) {
 		const value = e.target.value;
+		console.assert(this.table, 'table not found', this);
 		const searchRow = this.table.querySelector('#search-row');
 		const inputs = searchRow.querySelectorAll('input');
 		const query = {};
@@ -252,16 +253,52 @@ export class FmPortal extends LitElement {
 		this.queryController.filter(query);
 	}
 
-	searchRowTemplate() {
+	searchRowTemplate(headersArray) {
 		return html`
 			<tr id='search-row'>
-				${this.headersArray.map(header => {
+				${headersArray.map(header => {
 			if (header.hasAttribute('is-searchable')) {
-				return html`<td><input type='text' field-name=${header.getAttribute('field-name')} @change=${this.filterPortal}></td>`
+				return html`<td><input type='text' field-name=${header.getAttribute('field-name')} @change=${this.filterPortal.bind(this)}></td>`
 			}
 			return html`<td></td>`;
 		})}
 			</tr>
+		`
+	}
+
+	sortRowTemplate(sortFields) {
+		return html`
+			<div id='sort-buttons'>
+				<div class='sort'>Sort by:</div>
+				${sortFields.map(sortField => {
+			const fieldName = sortField.fieldName;
+			const direction = sortField.sortOrder;
+			// get the header for this fieldname
+			const header = this.table.querySelector(`th[field-name=${fieldName}]`);
+			const headerText = header.textContent;
+
+			return html`<button class="sort" field-name=${fieldName} sort-direction=${direction} @click=${this.removeSortField}>${headerText}</button>`
+		})}
+			</div>
+		`
+	}
+
+	pageButtonsTemplate() {
+		const query = this.queryController;
+		return html`
+			<div id="page-buttons">
+				<button @click=${this.previousPage}>prev</button>
+				<div>
+					<span id='page-number-span'>Page ${query.pageNumber} of ${query.totalPages}</span>
+					<select id='page-selector' @change=${this.changePage}>
+						${Array.from({ length: query.totalPages }, (_, i) => {
+							const pageNumber = i + 1;
+							return html`<option value=${pageNumber} ?selected=${pageNumber === query.pageNumber}>${pageNumber}</option>`
+						})}
+					</select>
+				</div>
+				<button @click=${this.nextPage}>next</button>
+			</div>
 		`
 	}
 }
