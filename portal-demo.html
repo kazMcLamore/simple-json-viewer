@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>JSON Viewer Test</title>
+	<!-- import the viewer component from our repo -->
+	<!-- <script
+		src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
+		type="module"></script> -->
+	<script src="json-viewer.js" type="module"></script>
+	<script src="fm-portal.js" type="module"></script>
+	<link rel="stylesheet" href="styles.css">
+	<style>
+		/* to ensure that this doesn't flash on-screen */
+		html {
+			background-color: #F5F5F5;
+		}
+
+		json-data {
+			display: none;
+		}
+	</style>
+</head>
+
+<body>
+	<fm-portal id='portal' query-script="sub: execute data api (fxp)"
+						 webviewer-name="test-viewer" json-path="data">
+		<json-data key="dataApiQuery">
+			<!-- json --> { "action": "read", "layouts": "query: function log v1",
+			"limit": 20, "query": [ { "__id":"*" } ] } </json-data>
+		<table>
+			<thead>
+				<tr>
+					<th json-path="recordId">id</th>
+					<th json-path="modId">mod</th>
+					<th json-path="fieldData" field-name="duration" is-searchable is-editable>duration
+					</th>
+					<th json-path="fieldData" field-name="start" is-searchable is-editable>start</th>
+					<th json-path="fieldData" field-name="end">end</th>
+					<th json-path="fieldData" field-name="creator" is-searchable>nonsense</th>
+					<th script-name="dialog" label="test">custom</th>
+					<th save-button label="save">save</th>
+				</tr>
+			</thead>
+		</table>
+	</fm-portal>
+
+
+</body>
+
+</html>

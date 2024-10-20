@@ -1,0 +1,47 @@
+html {
+	height: 100%;
+}
+
+body {
+	font-family: Arial, sans-serif;
+	height: 100vh;
+	margin: 0;
+}
+
+fm-portal {
+	font-size: small;
+}
+
+
+th[sort-direction="ascend"]::after {
+	content: "▲";
+	font-size: .7rem;
+	margin-left: 5px;
+}
+
+th[sort-direction="descend"]::after {
+	content: "▼";
+	font-size: .7rem;
+	margin-left: 5px;
+	
+}
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+}
+
+th, td {
+	border: 1px solid #dddddd;
+	text-align: left;
+	padding: 4px;
+}
+
+
+table input {
+	width: 100%;
+	background-color: inherit;
+	border: none;
+	font-size: small;
+
+}

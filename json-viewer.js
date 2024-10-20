@@ -1,8 +1,11 @@
 // import lit from CDN
 import { html, css, LitElement } from 'https://cdn.skypack.dev/lit';
+
+// import the FileMaker query controller
+import { FmQueryController } from './FileMaker.js';
+
+// import sub elements
 import { JsonElement } from './json-element.js';
-import { WebViewer } from './FileMaker.js';
-import { Task } from 'https://cdn.skypack.dev/@lit/task';
 import { JsonData } from './json-data.js';
 
 
@@ -85,14 +88,15 @@ export class JsonViewer extends LitElement {
 		`;
 	}
 
-
 	static get properties() {
 		return {
-			json: { type: Object },
+			// controller properties
+			dataApiResponse: { type: Object }, // set by the controller
+			dataApiQuery: { type: Object, state: true }, // used by the controller
+			scriptName: { type: String, reflect: true, attribute: 'query-script' }, // used by the controller
+			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' }, // used by the controller
+
 			elementCount: { type: Number, state: true },
-			scriptName: { type: String, reflect: true, attribute: 'query-script' },
-			query: { type: Object, state: true },
-			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
 			title: { type: String, reflect: true },
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 			open: { type: Boolean, reflect: true },
@@ -101,44 +105,44 @@ export class JsonViewer extends LitElement {
 		};
 	}
 
-
 	constructor() {
 		super();
-		this.json = {};
+		this.dataApiResponse = {};
+		this.dataApiQuery = null;
 		this.expandAll = false;
 		this.elementCount = 0;
-		// this.query = {};
 		this.title = '';
 		this.jsonPath = '';
 		this.scriptName = 'sub: execute data api (fxp)';
-
+		this.webviewerName = 'WebViewer';
+		this.open = false;
+		this.queryController = new FmQueryController(this);
 	}
 
 	willUpdate(changedProperties) {
-		if (changedProperties.has('json')) { 
+		if (changedProperties.has('dataApiResponse')) { 
 
 			// convert from string if needed
-			if (typeof this.json === 'string') {
-				this.json = JSON.parse(this.json);
+			if (typeof this.dataApiResponse === 'string') {
+				this.dataApiResponse = JSON.parse(this.dataApiResponse);
 			}
 
 			// count all elements
-			this.elementCount = this.countAllElements(this.json);
+			this.elementCount = this.countAllElements(this.dataApiResponse);
 		}
 	}
-
 
 	render() {
 
 		return html`
 			<details ?open=${this.open}>
 			<summary>${this.title ? this.title : ''}${this.elementCount - 1} Elements</summary>
-			${this.queryTask.render({
+			${this.queryController.queryTask.render({
 				initial: () => html`<div class='loading'>loading the component ...</div>`,
 				pending: () => html`<div class='loading'>getting data ...</div>`,
 				complete: (data) => html`
 					<json-element
-						.value=${this.json} 
+						.value=${eval(`data.${this.jsonPath}`)} 
 						.expanded=${true} 
 						.bracketColors=${this.bracketColors}>
 					</json-element>
@@ -148,41 +152,6 @@ export class JsonViewer extends LitElement {
 			</details>
 		`
 	}
-
-	queryTask = new Task(this, {
-		task: async ([query], { signal }) => {
-			
-			if (!this.webviewerName) { 
-				throw new Error('No webviewer name set');
-			}
-
-			if (!this.scriptName) { 
-				throw new Error('No script name set');
-			}
-
-			if (!this.jsonPath) { 
-				throw new Error('No json path set');
-			}
-
-			if (!this.query) { 
-				console.log('No query set');
-				return {};
-			}
-
-
-			const result = await WebViewer.performScript({
-				script: this.scriptName,
-				params: query,
-				webviewerName: this.webviewerName,
-				scriptOption: WebViewer.scriptOptions.SUSPEND,
-				performOnServer: false
-			})
-			this.json = eval(`result.${this.jsonPath}`);
-			return this.json;
-		},
-		args: () => [  this.query ],
-	});
-
 
 	// helper functions
 	countAllElements(json) { 
@@ -203,7 +172,6 @@ export class JsonViewer extends LitElement {
 		countElements(json);
 		return count;
 	}
-
 }
 
 customElements.define('json-viewer', JsonViewer);
