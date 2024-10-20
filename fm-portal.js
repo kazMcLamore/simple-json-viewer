@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'https://cdn.skypack.dev/lit-element';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
+import {repeat } from 'https://cdn.skypack.dev/lit/directives/repeat.js';
 import { render } from 'https://cdn.skypack.dev/lit-html';
 import { FmQueryController } from './FileMaker.js';
 
@@ -47,10 +48,12 @@ export class FmPortal extends LitElement {
 			button.sort[sort-direction=ascend]:after {
 				content: '▲';
 				font-size: .8rem;
+				padding-left: .2rem;
 			}
 			button.sort[sort-direction=descend]:after {
 				content: '▼';
 				font-size: .8rem;
+				padding-left: .2rem;
 			}
 			button {
 				cursor: pointer;
@@ -71,6 +74,8 @@ export class FmPortal extends LitElement {
 			#page-selector {
 				padding: .2rem;
 				margin-left: .5rem;
+				background-color: inherit;
+				border: 1px solid rgb(183, 183, 183);
 			}
 		`
 	}
@@ -116,7 +121,7 @@ export class FmPortal extends LitElement {
 			this.pageButtonsTemplate(),
 			html`
 				${task.render({
-				initial: () => html`<div class='loading'>loading the component ...</div><slot style="display: none"></slot>`,
+				initial: () => html`<div class='loading'>loading the component ...</div><slot></slot>`,
 				pending: () => html`<div class='loading'>getting data ...</div><slot></slot>`,
 				complete: (data) => [
 					this.populateTable(data),
@@ -129,7 +134,7 @@ export class FmPortal extends LitElement {
 				],
 			})}
 		`,
-			html`<div id="record-info"><span id='record-count-span'>${this.queryController.offset}...${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
+			html`<div id="record-info"><span id='record-count-span'>${this.queryController.offset} to ${Math.min(this.queryController.foundCount, this.queryController.limit * this.queryController.pageNumber)} of ${this.queryController.foundCount}</span></div>
 		`]
 	}
 
@@ -148,38 +153,17 @@ export class FmPortal extends LitElement {
 		const rows = eval(`data.${this.jsonPath}`) || [];
 
 		// generate rows template
-		const rowsTemplate = rows.reduce((acc, row, index) => {
+		const rowsTemplate = html`
+			${repeat(rows, (row) => row.recordId, (row, index) => {
 			const rowId = row.recordId;
 			const modId = row.modId;
+			row.isUpdated = false;
 
-			const rowTemplate = headers.reduce((acc, header) => {
-				const path = header.getAttribute('json-path');
-				const field = header.getAttribute('field-name');
-				const scriptName = header.getAttribute('script-name');
-				const label = header.getAttribute('label');
-				const evalString = `row.${path}` + (field ? `['${field}']` : '');
-				const value = eval(evalString);
-
-				const clickHandler = () => {
-					this.queryController.performScript({
-						script: scriptName,
-						params: { data: row, index, webviewer: this.webviewerName },
-						webviewerName: this.webviewerName,
-					})
-				}
-
-				if (scriptName) {
-					return html`${acc}<td @click=${clickHandler}>${label}</td>`
-				} else {
-					return html`${acc}<td>${value}</td>`
-				}
-
-
-			}, html``);
-
-			return html`${acc}<tr record-id=${rowId} mod-id=${modId} record-data=${row}>${rowTemplate}</tr>`
-
-		}, html``);
+			// generate the row template
+			const rowTemplate = this.rowTemplate(row, headers, index);
+			return html`<tr record-id=${rowId} mod-id=${modId} .recordData=${row}>${rowTemplate}</tr>`
+			})}
+		`;
 
 		// render the table
 		render(html`
@@ -192,6 +176,7 @@ export class FmPortal extends LitElement {
 	nextPage() {
 		this.queryController.nextPage();
 	}
+
 	previousPage() {
 		this.queryController.previousPage();
 	}
@@ -258,7 +243,7 @@ export class FmPortal extends LitElement {
 			<tr id='search-row'>
 				${headersArray.map(header => {
 			if (header.hasAttribute('is-searchable')) {
-				return html`<td><input type='text' field-name=${header.getAttribute('field-name')} @change=${this.filterPortal.bind(this)}></td>`
+				return html`<td><input type='text' field-name=${header.getAttribute('field-name')} @change=${this.filterPortal.bind(this)} placeholder='filter...'></td>`
 			}
 			return html`<td></td>`;
 		})}
@@ -292,15 +277,79 @@ export class FmPortal extends LitElement {
 					<span id='page-number-span'>Page ${query.pageNumber} of ${query.totalPages}</span>
 					<select id='page-selector' @change=${this.changePage}>
 						${Array.from({ length: query.totalPages }, (_, i) => {
-							const pageNumber = i + 1;
-							return html`<option value=${pageNumber} ?selected=${pageNumber === query.pageNumber}>${pageNumber}</option>`
-						})}
+			const pageNumber = i + 1;
+			return html`<option value=${pageNumber} ?selected=${pageNumber === query.pageNumber}>${pageNumber}</option>`
+		})}
 					</select>
 				</div>
 				<button @click=${this.nextPage}>next</button>
 			</div>
 		`
 	}
+
+	rowTemplate(row, headers, index){
+		return headers.reduce((acc, header) => {
+			const path = header.getAttribute('json-path');
+			const field = header.getAttribute('field-name');
+			const scriptName = header.getAttribute('script-name');
+			const isEditable = header.hasAttribute('is-editable');
+			const isSaveButton = header.hasAttribute('save-button');
+			const label = header.getAttribute('label');
+			const evalString = `row.${path}` + (field ? `['${field}']` : '');
+			const value = eval(evalString);
+
+			const clickHandler = () => {
+				this.queryController.performScript({
+					script: scriptName,
+					params: { 
+						data: row, 
+						index, 
+						webviewer: this.webviewerName,
+					 	request: this.queryController.request
+					},
+					webviewerName: this.webviewerName,
+				})
+			}
+
+			if(isSaveButton){
+				return html`${acc}<td field-name=${field}><button class='save-row' disabled @click=${this.saveRow.bind(this)}>${label}</button></td>`
+			} else if (isEditable && field.length ){
+				return html`${acc}
+					<td field-name=${field}><input .value=${value} @change=${this.handleValueChanged.bind(this)}></td>`
+			} else if (scriptName) {
+				return html`${acc}<td @click=${clickHandler} field-name=${field}>${label}</td>`
+			} else {
+				return html`${acc}<td field-name=${field}>${value}</td>`
+			}
+		}, html``);
+	}
+
+
+	saveRow(e){
+		const row = e.target.closest('tr').recordData;
+		console.log('save row', row);
+		// re-run the query
+		this.queryController.refresh();
+
+		
+	}
+
+	handleValueChanged(e){
+		// if it's an input, get the parent td
+		if( e.target.tagName === 'INPUT' ){
+			const td = e.target.closest('td');
+			const field = td.getAttribute('field-name');
+			const row = td.closest('tr');
+			const rowData = row.recordData;
+			rowData.fieldData[field] = e.target.value;
+			rowData.isUpdated = true;
+			// enable the save button
+			const saveButton = row.querySelector('.save-row');
+			saveButton.removeAttribute('disabled');
+
+		}
+	}
+
 }
 
 window.customElements.define('fm-portal', FmPortal);

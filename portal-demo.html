@@ -29,18 +29,19 @@
 						 webviewer-name="test-viewer" json-path="data">
 		<json-data key="dataApiQuery">
 			<!-- json --> { "action": "read", "layouts": "query: function log v1",
-			"limit": 15, "query": [ { "__id":"*" } ] } </json-data>
+			"limit": 20, "query": [ { "__id":"*" } ] } </json-data>
 		<table>
 			<thead>
 				<tr>
 					<th json-path="recordId">id</th>
 					<th json-path="modId">mod</th>
-					<th json-path="fieldData" field-name="duration" is-searchable>duration
+					<th json-path="fieldData" field-name="duration" is-searchable is-editable>duration
 					</th>
-					<th json-path="fieldData" field-name="start" is-searchable>start</th>
+					<th json-path="fieldData" field-name="start" is-searchable is-editable>start</th>
 					<th json-path="fieldData" field-name="end">end</th>
 					<th json-path="fieldData" field-name="creator" is-searchable>nonsense</th>
 					<th script-name="dialog" label="test">custom</th>
+					<th save-button label="save">save</th>
 				</tr>
 			</thead>
 		</table>

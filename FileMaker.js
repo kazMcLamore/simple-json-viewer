@@ -128,12 +128,14 @@ class FmQueryController {
 				if (query.offset) {
 					this.offset = query.offset;
 				}
-				if (query.sort) { 
+				if (query.sort) {
 					this.sortFields = query.sort;
 				}
 				if (query.query.length) {
 					this.query = query.query;
 				}
+
+				this.request = query;
 
 				// Perform the FileMaker script
 				const result = await WebViewer.performScript({
@@ -160,17 +162,19 @@ class FmQueryController {
 	}
 
 	set query(value) {
-		if(!this._query && value.length) {
+		if (!this._query && value.length) {
 			this.firstQuery = value;
 		}
 		this._query = value;
 	}
 
-	get query() { 
+	get query() {
 		return this._query;
 	}
 
 	getPage(pageNumber) {
+		pageNumber = Number(pageNumber);
+
 		// ensure page is within bounds
 		if (pageNumber < 1) {
 			pageNumber = 1;
@@ -181,28 +185,36 @@ class FmQueryController {
 		}
 
 		this.pageNumber = pageNumber;
-		
+
 		this.offset = Math.max((pageNumber - 1) * this.limit, 1);
-		this.host.dataApiQuery = { ...this.host.dataApiQuery, limit: this.limit, offset: this.offset };
+		this.host.dataApiQuery = {
+			...this.host.dataApiQuery,
+			limit: this.limit,
+			offset: this.offset
+		};
 		this.queryTask.run();
 	}
 
 	nextPage() {
-		this.getPage(this.pageNumber + 1);
+		this.getPage(Number(this.pageNumber) + 1);
 	}
 
 	previousPage() {
 		this.getPage(this.pageNumber - 1);
 	}
 
+	refresh(){
+		this.queryTask.run();
+	}
+
 	sortBy(fieldName, sortOrder) {
 		// check if field is already sorted
 		const index = this.sortFields.findIndex((sortField) => sortField.fieldName === fieldName);
 
-		if (index > -1 && sortOrder ) {
+		if (index > -1 && sortOrder) {
 			// reverse the sort direction
 			this.sortFields[index].sortOrder = sortOrder;
-		} else if (index > -1 ) {
+		} else if (index > -1) {
 			// remove the field from the sort
 			this.sortFields.splice(index, 1);
 		} else {
