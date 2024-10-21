@@ -12,6 +12,10 @@ fm-portal {
 	font-size: small;
 }
 
+fm-portal-row {
+	display: contents;
+}
+
 
 th[sort-direction="ascend"]::after {
 	content: "▲";

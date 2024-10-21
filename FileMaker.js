@@ -98,9 +98,18 @@ class WebViewer {
 	}
 }
 
+// FileMaker Query Controller
+// This class is used to manage the state of a FileMaker query
+// and to perform the query using the WebViewer class
+
 class FmQueryController {
 
 	constructor(host) {
+		// Store a reference to the host
+		this.host = host;
+		// Register for lifecycle updates
+		host.addController(this);
+		console.log('registering controller', this);
 
 		this.limit = 10;
 		this.offset = 1;
@@ -108,12 +117,6 @@ class FmQueryController {
 		this.totalPages = 1;
 		this.foundCount = 0;
 		this.sortFields = [];
-
-		// Store a reference to the host
-		this.host = host;
-		// Register for lifecycle updates
-		host.addController(this);
-		console.log('registering controller', this);
 
 		// Create a task for the query
 		this.queryTask = new Task(host, {
@@ -203,7 +206,7 @@ class FmQueryController {
 		this.getPage(this.pageNumber - 1);
 	}
 
-	refresh(){
+	refresh() {
 		this.queryTask.run();
 	}
 
@@ -248,4 +251,55 @@ class FmQueryController {
 	performScript = WebViewer.performScript.bind(this);
 }
 
-export { WebViewer, FmQueryController }; // Export the WebViewer class for use in other modules
+// Controller for managing a FileMaker record
+// This class is used to manage the state of a FileMaker record
+// and to perform create, read, update, and delete operations
+// using the WebViewer class
+// it sends and updates the recordData property of the host
+class FmRecordController {
+	constructor(host, options) {
+		this.host = host;
+		// Register for lifecycle updates
+		host.addController(this);
+
+		this.dataApiScript = options.dataApiScript;
+		this.updateLayout = options.updateLayout;
+		this.queryLayout = options.queryLayout;
+		this.webviewerName = options.webviewerName;
+		// console.log('controller mounted', options)
+	}
+
+	// create a method for updating the record
+	updateRecord = async (recordData) => {
+		try {
+			// Perform the FileMaker script
+			const result = await WebViewer.performScript({
+				script: this.dataApiScript,
+				params: {
+					...recordData, // fieldData and possibly portalData
+					recordId: parseInt(this.host.recordId),
+					// modId: parseInt(this.host.modId),
+					layouts: this.updateLayout,
+					action: 'update',
+				},
+				webviewerName: this.webviewerName,
+				scriptOption: WebViewer.scriptOptions.SUSPEND,
+				performOnServer: false,
+			});
+
+			// Store the response
+			this.host.modId = result.modId;
+			this.host.requestUpdate();
+
+		} catch (error) {
+			console.error('Error updating record', error, this.dataApiScript, recordData);
+			throw error;
+		}
+	};
+
+	performScript = WebViewer.performScript.bind(this);
+
+}
+
+
+export { WebViewer, FmQueryController, FmRecordController }; // Export the WebViewer class for use in other modules

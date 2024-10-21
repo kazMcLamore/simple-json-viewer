@@ -25,10 +25,12 @@
 </head>
 
 <body>
-	<fm-portal id='portal' query-script="sub: execute data api (fxp)"
-						 webviewer-name="test-viewer" json-path="data">
+	<!-- <fm-portal id='portal' query-script="sub: execute data api (fxp)"
+						 webviewer-name="test-viewer" json-path="data" 
+						 query-layout="query: function log v1"
+						 update-layout="query: function log v1">
 		<json-data key="dataApiQuery">
-			<!-- json --> { "action": "read", "layouts": "query: function log v1",
+			{ "action": "read", "layouts": "query: function log v1",
 			"limit": 20, "query": [ { "__id":"*" } ] } </json-data>
 		<table>
 			<thead>
@@ -45,7 +47,32 @@
 				</tr>
 			</thead>
 		</table>
-	</fm-portal>
+	</fm-portal> -->
+
+		<fm-portal id='portal-1' query-script="sub: execute data api (fxp)"
+							 webviewer-name="test-viewer" json-path="data"
+							 query-layout="query: test data v1"
+							 update-layout="query: test data v1">
+			<json-data key="dataApiQuery">
+			{ "action": "read", "layouts": "query: test data v1",
+				"limit": 25, "query": [ { "__id":"*" } ] } </json-data>
+			<table>
+				<thead>
+					<tr>
+						<th json-path="recordId">id</th>
+						<th json-path="modId">mod</th>
+						<th json-path="fieldData" field-name="first name" is-searchable
+								is-editable>first name </th>
+						<th json-path="fieldData" field-name="last name" is-searchable is-editable>
+							last name</th>
+						<th json-path="fieldData" field-name="creator" is-searchable>nonsense
+						</th>
+						<th script-name="dialog" label="test">custom</th>
+						<th save-button label="save">save</th>
+					</tr>
+				</thead>
+			</table>
+		</fm-portal>
 
 
 </body>

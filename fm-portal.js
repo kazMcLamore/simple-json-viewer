@@ -1,8 +1,9 @@
 import { LitElement, html, css, nothing } from 'https://cdn.skypack.dev/lit-element';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
-import {repeat } from 'https://cdn.skypack.dev/lit/directives/repeat.js';
+import { repeat } from 'https://cdn.skypack.dev/lit/directives/repeat.js';
 import { render } from 'https://cdn.skypack.dev/lit-html';
 import { FmQueryController } from './FileMaker.js';
+import { FmPortalRow } from './fm-portal-row.js';
 
 
 export class FmPortal extends LitElement {
@@ -88,6 +89,8 @@ export class FmPortal extends LitElement {
 			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
 			error: { type: String },
+			queryLayout: { type: String, reflect: true, attribute: 'query-layout' },
+			updateLayout: { type: String, reflect: true, attribute: 'update-layout' },
 		}
 	}
 
@@ -151,18 +154,25 @@ export class FmPortal extends LitElement {
 		table.appendChild(tableBody);
 
 		const rows = eval(`data.${this.jsonPath}`) || [];
+		const recordControllerOptions = {
+			dataApiScript: this.scriptName,
+			queryLayout: this.queryLayout,
+			updateLayout: this.updateLayout,
+			webviewerName: this.webviewerName,
+		}
 
 		// generate rows template
 		const rowsTemplate = html`
 			${repeat(rows, (row) => row.recordId, (row, index) => {
-			const rowId = row.recordId;
-			const modId = row.modId;
-			row.isUpdated = false;
-
-			// generate the row template
-			const rowTemplate = this.rowTemplate(row, headers, index);
-			return html`<tr record-id=${rowId} mod-id=${modId} .recordData=${row}>${rowTemplate}</tr>`
-			})}
+				return html`
+						<fm-portal-row 
+							.recordData=${row}
+							.headers=${headers}
+							.index=${index}
+							.controllerOptions=${recordControllerOptions}>
+						</fm-portal-row>
+					`
+		})}
 		`;
 
 		// render the table
@@ -182,7 +192,6 @@ export class FmPortal extends LitElement {
 	}
 
 	changePage(e) {
-		console.log('change page', e.target.value);
 		const pageNumber = e.target.value;
 		this.queryController.getPage(pageNumber);
 	}
@@ -217,7 +226,7 @@ export class FmPortal extends LitElement {
 		this.queryController.sortBy(fieldName);
 
 		// get the column
-		const column = this.table.querySelector(`th[field-name=${fieldName}]`);
+		const column = this.table.querySelector(`th[field-name="${fieldName}"]`);
 		// remove the sort direction
 		column.removeAttribute('sort-direction');
 	}
@@ -259,7 +268,7 @@ export class FmPortal extends LitElement {
 			const fieldName = sortField.fieldName;
 			const direction = sortField.sortOrder;
 			// get the header for this fieldname
-			const header = this.table.querySelector(`th[field-name=${fieldName}]`);
+			const header = this.table.querySelector(`th[field-name="${fieldName}"]`);
 			const headerText = header.textContent;
 
 			return html`<button class="sort" field-name=${fieldName} sort-direction=${direction} @click=${this.removeSortField}>${headerText}</button>`
@@ -287,68 +296,68 @@ export class FmPortal extends LitElement {
 		`
 	}
 
-	rowTemplate(row, headers, index){
-		return headers.reduce((acc, header) => {
-			const path = header.getAttribute('json-path');
-			const field = header.getAttribute('field-name');
-			const scriptName = header.getAttribute('script-name');
-			const isEditable = header.hasAttribute('is-editable');
-			const isSaveButton = header.hasAttribute('save-button');
-			const label = header.getAttribute('label');
-			const evalString = `row.${path}` + (field ? `['${field}']` : '');
-			const value = eval(evalString);
+	// rowTemplate(row, headers, index) {
+	// 	return headers.reduce((acc, header) => {
+	// 		const path = header.getAttribute('json-path');
+	// 		const field = header.getAttribute('field-name');
+	// 		const scriptName = header.getAttribute('script-name');
+	// 		const isEditable = header.hasAttribute('is-editable');
+	// 		const isSaveButton = header.hasAttribute('save-button');
+	// 		const label = header.getAttribute('label');
+	// 		const evalString = `row.${path}` + (field ? `['${field}']` : '');
+	// 		const value = eval(evalString);
 
-			const clickHandler = () => {
-				this.queryController.performScript({
-					script: scriptName,
-					params: { 
-						data: row, 
-						index, 
-						webviewer: this.webviewerName,
-					 	request: this.queryController.request
-					},
-					webviewerName: this.webviewerName,
-				})
-			}
+	// 		const clickHandler = () => {
+	// 			this.queryController.performScript({
+	// 				script: scriptName,
+	// 				params: {
+	// 					data: row,
+	// 					index,
+	// 					webviewer: this.webviewerName,
+	// 					request: this.queryController.request
+	// 				},
+	// 				webviewerName: this.webviewerName,
+	// 			})
+	// 		}
 
-			if(isSaveButton){
-				return html`${acc}<td field-name=${field}><button class='save-row' disabled @click=${this.saveRow.bind(this)}>${label}</button></td>`
-			} else if (isEditable && field.length ){
-				return html`${acc}
-					<td field-name=${field}><input .value=${value} @change=${this.handleValueChanged.bind(this)}></td>`
-			} else if (scriptName) {
-				return html`${acc}<td @click=${clickHandler} field-name=${field}>${label}</td>`
-			} else {
-				return html`${acc}<td field-name=${field}>${value}</td>`
-			}
-		}, html``);
-	}
+	// 		if (isSaveButton) {
+	// 			return html`${acc}<td field-name=${field}><button class='save-row' disabled @click=${this.saveRow.bind(this)}>${label}</button></td>`
+	// 		} else if (isEditable && field.length) {
+	// 			return html`${acc}
+	// 				<td field-name=${field}><input .value=${value} @change=${this.handleValueChanged.bind(this)}></td>`
+	// 		} else if (scriptName) {
+	// 			return html`${acc}<td @click=${clickHandler} field-name=${field}>${label}</td>`
+	// 		} else {
+	// 			return html`${acc}<td field-name=${field}>${value}</td>`
+	// 		}
+	// 	}, html``);
+	// }
 
 
-	saveRow(e){
-		const row = e.target.closest('tr').recordData;
-		console.log('save row', row);
-		// re-run the query
-		this.queryController.refresh();
+	// saveRow(e) {
+	// 	const row = e.target.closest('tr').recordData;
+	// 	console.log('save row', row);
+	// 	// re-run the query
+	// 	this.queryController.refresh();
 
-		
-	}
 
-	handleValueChanged(e){
-		// if it's an input, get the parent td
-		if( e.target.tagName === 'INPUT' ){
-			const td = e.target.closest('td');
-			const field = td.getAttribute('field-name');
-			const row = td.closest('tr');
-			const rowData = row.recordData;
-			rowData.fieldData[field] = e.target.value;
-			rowData.isUpdated = true;
-			// enable the save button
-			const saveButton = row.querySelector('.save-row');
-			saveButton.removeAttribute('disabled');
+	// }
 
-		}
-	}
+	// handleValueChanged(e) {
+	// 	// if it's an input, get the parent td
+	// 	if (e.target.tagName === 'INPUT') {
+	// 		const td = e.target.closest('td');
+	// 		const field = td.getAttribute('field-name');
+	// 		const row = td.closest('tr');
+	// 		const rowData = row.recordData;
+	// 		rowData.fieldData[field] = e.target.value;
+	// 		rowData.isUpdated = true;
+	// 		// enable the save button
+	// 		const saveButton = row.querySelector('.save-row');
+	// 		saveButton.removeAttribute('disabled');
+
+	// 	}
+	// }
 
 }
 
