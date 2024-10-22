@@ -6,12 +6,10 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>JSON Viewer Test</title>
 	<!-- import the viewer component from our repo -->
-	<script src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
-					type="module"></script>
-	<script src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/fm-portal.js"
-					type="module"></script>
-	<!-- <script src="json-viewer.js" type="module"></script>
-	<script src="fm-portal.js" type="module"></script> -->
+	<!-- <script src="https://cdn.jsdelivr.net/gh/kazMcLamore/simple-json-viewer@main/json-viewer.js"
+		type="module"></script> -->
+	<script src="json-viewer.js" type="module"></script>
+	<script src="fm-portal.js" type="module"></script>
 	<link rel="stylesheet" href="styles.css">
 	<style>
 		/* to ensure that this doesn't flash on-screen */
@@ -49,30 +47,55 @@
 			</thead>
 		</table>
 	</fm-portal> -->
-	<fm-portal id='portal-1' query-script="sub: execute data api (fxp)"
-						 webviewer-name="test-viewer" json-path="data"
-						 query-layout="query: test data v1"
-						 update-layout="query: test data v1">
-		<json-data key="dataApiQuery"> { "action": "read", "layouts": "query: test
-			data v1", "limit": 20, "query": [ { "__id":"*" } ] } </json-data>
-		<table>
-			<thead>
-				<tr>
-					<th json-path="recordId">id</th>
-					<th json-path="modId">mod</th>
-					<th json-path="fieldData" field-name="first name" is-searchable
-							is-editable>first name </th>
-					<th json-path="fieldData" field-name="last name" is-searchable
-							is-editable> last name</th>
-					<th json-path="fieldData" field-name="creator" is-searchable>creator
-					</th>
-					<th script-name="dialog" label="dialog">script</th>
-					<th save-button label="save"></th>
-					<th delete-button label="x"></th>
-				</tr>
-			</thead>
-		</table>
-	</fm-portal>
+
+		<fm-portal id='portal-1' query-script="sub: execute data api (fxp)"
+							 webviewer-name="test-viewer" json-path="data"
+							 query-layout="query: test data v1"
+							 update-layout="query: test data v1">
+			<json-data key="dataApiQuery">
+			{ "action": "read", "layouts": "query: test data v1",
+				"limit": 20, "query": [ { "__id":"*" } ] } </json-data>
+			<table>
+				<thead>
+					<tr>
+						<th json-path="recordId">id</th>
+						<th json-path="modId">mod</th>
+						<th json-path="fieldData" field-name="first name" is-searchable
+								is-editable>first name </th>
+						<th json-path="fieldData" field-name="last name" is-searchable is-editable>
+							last name</th>
+						<th json-path="fieldData" field-name="creator" is-searchable>creator
+						</th>
+						<th script-name="dialog" label="dialog">script</th>
+						<th save-button label="save"></th>
+						<th delete-button label="x"></th>
+					</tr>
+				</thead>
+			</table>
+		</fm-portal>
+
+		<script>
+			// make basic auth request to get token from FileMaker Server
+			 fetch('https://fm.mx.fxprofessionalservices.com/fmi/data/v1/databases/Integrator Edge/sessions', {
+				method: 'POST',
+				headers: {
+					'Authorization': 'Basic ' + btoa('admin:admin'),
+					'Content-Type': 'application/json',
+					'Accept': 'application/json',
+					'mode': 'no-cors'
+
+				},
+			}).then(response => response.json())
+				.then(data => {
+					console.log(data);
+					// set the token in the portal
+					document.getElementById('portal-1').token = data.response.token;
+				})
+				.catch((error) => {
+					console.error('Error:', error);
+				});
+		</script>
+
 </body>
 
 </html>

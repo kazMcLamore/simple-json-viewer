@@ -116,6 +116,7 @@ class FmQueryController {
 		this.totalPages = 1;
 		this.foundCount = 0;
 		this.sortFields = [];
+		this.token = null;
 
 		// Create a task for the query
 		this.queryTask = new Task(host, {
@@ -139,14 +140,49 @@ class FmQueryController {
 
 				this.request = query;
 
+				if (this.host.platform === 'web' && !this.token) {
+					const response = await fetch('https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/sessions', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': 'Basic ' + btoa('admin:zEs#Mr4^@KU2#M#'),
+						},
+					});
+					const data = await response.json();
+					this.token = data.response.token;
+				}
+
+				let result;
 				// Perform the FileMaker script
-				const result = await WebViewer.performScript({
-					script: this.host.scriptName,
-					params: query,
-					webviewerName: this.host.webviewerName,
-					scriptOption: WebViewer.scriptOptions.SUSPEND,
-					performOnServer: false,
-				});
+				if (this.host.platform === 'filemaker') {
+					result = await WebViewer.performScript({
+						script: this.host.scriptName,
+						params: query,
+						webviewerName: this.host.webviewerName,
+						scriptOption: WebViewer.scriptOptions.SUSPEND,
+						performOnServer: false,
+					});
+				} else if (this.host.platform === 'web') {
+
+					// remove unneeded properties from query
+					const layout = query.layouts;
+					delete query.layouts;
+					delete query.action;
+
+
+
+					// perform regular fetch request
+					result = await fetch(`https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/${query.layouts}_find?`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': 'Bearer ' + this.token,
+						},
+
+						body: JSON.stringify(query),
+					})
+				}
+
 
 				if (result.dataInfo) {
 					this.foundCount = result.dataInfo.foundCount;

@@ -110,6 +110,7 @@ export class FmPortal extends LitElement {
 			error: { type: String },
 			queryLayout: { type: String, reflect: true, attribute: 'query-layout' },
 			updateLayout: { type: String, reflect: true, attribute: 'update-layout' },
+			platform: { type: String, reflect: true },
 		}
 	}
 
