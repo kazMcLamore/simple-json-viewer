@@ -33,7 +33,9 @@ th[sort-direction="descend"]::after {
 table {
 	border-collapse: collapse;
 	width: 100%;
+	position: relative;
 }
+
 
 th, td {
 	border: 1px solid #dddddd;
@@ -48,4 +50,9 @@ table input {
 	border: none;
 	font-size: small;
 
+}
+
+th {
+	position: sticky;
+	top: 0px;
 }

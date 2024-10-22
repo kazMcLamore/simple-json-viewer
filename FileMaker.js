@@ -101,7 +101,6 @@ class WebViewer {
 // FileMaker Query Controller
 // This class is used to manage the state of a FileMaker query
 // and to perform the query using the WebViewer class
-
 class FmQueryController {
 
 	constructor(host) {
@@ -287,9 +286,14 @@ class FmRecordController {
 				performOnServer: false,
 			});
 
-			// Store the response
-			this.host.modId = result.modId;
-			this.host.requestUpdate();
+			// merge the FIELDS object from recordData with the one from recordData
+			const newFields = recordData.fieldData;
+			const oldFields = this.host.recordData.fieldData;
+			const mergedFields = { ...oldFields, ...newFields };
+			this.host.recordData = { ...this.host.recordData, fieldData: mergedFields, modId: result.modId };
+
+			// reset the isUpdated flag to disable the save button
+			this.host.isUpdated = false;
 
 		} catch (error) {
 			console.error('Error updating record', error, this.dataApiScript, recordData);
@@ -300,6 +304,5 @@ class FmRecordController {
 	performScript = WebViewer.performScript.bind(this);
 
 }
-
 
 export { WebViewer, FmQueryController, FmRecordController }; // Export the WebViewer class for use in other modules

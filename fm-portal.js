@@ -1,7 +1,6 @@
-import { LitElement, html, css, nothing } from 'https://cdn.skypack.dev/lit-element';
+import { LitElement, html, css, nothing, render } from 'https://cdn.skypack.dev/lit-element';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
 import { repeat } from 'https://cdn.skypack.dev/lit/directives/repeat.js';
-import { render } from 'https://cdn.skypack.dev/lit-html';
 import { FmQueryController } from './FileMaker.js';
 import { FmPortalRow } from './fm-portal-row.js';
 
@@ -12,7 +11,8 @@ export class FmPortal extends LitElement {
 		return css`
 			:host {
 				position: relative;
-				white-space: nowrap;
+				--background-color: #F5F5F5;
+				--border-color: rgb(183, 183, 183);
 			}
 			div.loading {
 				position: absolute;
@@ -20,8 +20,9 @@ export class FmPortal extends LitElement {
 				left: 55px;
 				z-index: 100;
 				padding: .2rem .5rem;
-				border: 1px solid rgb(183, 183, 183);
+				border: 1px solid var(--border-color);
 				border-radius: 5px;
+				text-wrap: nowrap;
 			}
 			.error {
 				color: red;
@@ -35,9 +36,19 @@ export class FmPortal extends LitElement {
 			div#record-info {
 				text-align: center;
 				padding: .5rem 0 0 0;
-				background-color: inherit;
+				background-color: var(--background-color);
 				width: 100%;
-
+				position: sticky;
+				bottom: 0;
+				z-index: 100;
+				border-top: 1px solid var(--border-color);
+			}
+			div#above-table {
+				position: sticky;
+				top: 0;
+				background-color: var(--background-color);
+				z-index: 100;
+				border-bottom: 1px solid var(--border-color);
 			}
 			.sort {
 				cursor: pointer;
@@ -77,6 +88,9 @@ export class FmPortal extends LitElement {
 				margin-left: .5rem;
 				background-color: inherit;
 				border: 1px solid rgb(183, 183, 183);
+			}
+			slot {
+				position: relative;
 			}
 		`
 	}
@@ -120,8 +134,10 @@ export class FmPortal extends LitElement {
 	render() {
 		const task = this.queryController.queryTask;
 		return [
-			this.sortRowTemplate(this.queryController.sortFields),
-			this.pageButtonsTemplate(),
+			html`<div id=above-table>
+				${this.sortRowTemplate(this.queryController.sortFields)}
+				${this.pageButtonsTemplate()}
+			</div>`,
 			html`
 				${task.render({
 				initial: () => html`<div class='loading'>loading the component ...</div><slot></slot>`,
@@ -149,8 +165,15 @@ export class FmPortal extends LitElement {
 		const headers = Array.from(tableHeader.querySelectorAll('th'));
 		const searchRow = html`${cache(this.showSearchRow ? this.searchRowTemplate(headers) : nothing)}`;
 
-		// upsert the tbody
-		const tableBody = table.querySelector('tbody') || document.createElement('tbody');
+		let tableBody;
+
+		if(!table.querySelector('tbody')) {
+			tableBody = document.createElement('tbody');
+			tableBody.addEventListener('keydown', this.onArrowKey);
+		} else {
+			tableBody = table.querySelector('tbody');
+		}
+
 		table.appendChild(tableBody);
 
 		const rows = eval(`data.${this.jsonPath}`) || [];
@@ -191,6 +214,7 @@ export class FmPortal extends LitElement {
 		this.queryController.previousPage();
 	}
 
+	// event handlers
 	changePage(e) {
 		const pageNumber = e.target.value;
 		this.queryController.getPage(pageNumber);
@@ -232,8 +256,6 @@ export class FmPortal extends LitElement {
 	}
 
 	filterPortal(e) {
-		const value = e.target.value;
-		console.assert(this.table, 'table not found', this);
 		const searchRow = this.table.querySelector('#search-row');
 		const inputs = searchRow.querySelectorAll('input');
 		const query = {};
@@ -247,6 +269,38 @@ export class FmPortal extends LitElement {
 		this.queryController.filter(query);
 	}
 
+	onArrowKey(e) {
+
+		const key = e.key;
+		const focused = document.activeElement;
+		const row = focused.closest('tr');
+		const portalRow = focused.closest('fm-portal-row');
+		const element = e.target;
+		console.log('key', key, 'element', element, 'row', row, 'portalRow', portalRow);
+		// determine if this is an input
+		if((key === 'ArrowDown' || key === 'ArrowUp') && element.tagName === 'INPUT') {
+			const cell = element.closest('td');
+			const cellIndex = cell.cellIndex;
+			const nextRow = key === 'ArrowDown' ? portalRow.nextElementSibling : portalRow.previousElementSibling;
+			if(nextRow) {
+				const nextCell = nextRow.querySelector(`td:nth-child(${cellIndex + 1})`);
+				const nextInput = nextCell.querySelector('input');
+				if(nextInput) {
+					nextInput.focus();
+				}
+			}
+		} else if ((key === 'ArrowDown' || key === 'ArrowUp') && element.tagName === 'TR') {
+			const nextPortalRow = key === 'ArrowDown' ? portalRow.nextElementSibling : portalRow.previousElementSibling;
+			const nextTableRow = nextPortalRow.querySelector('tr');
+			if(nextTableRow) {
+				nextTableRow.focus();
+			}
+			
+		}
+
+	}
+
+	// templates
 	searchRowTemplate(headersArray) {
 		return html`
 			<tr id='search-row'>
@@ -281,7 +335,7 @@ export class FmPortal extends LitElement {
 		const query = this.queryController;
 		return html`
 			<div id="page-buttons">
-				<button @click=${this.previousPage}>prev</button>
+				<button @click=${this.previousPage} tabindex=0>prev</button>
 				<div>
 					<span id='page-number-span'>Page ${query.pageNumber} of ${query.totalPages}</span>
 					<select id='page-selector' @change=${this.changePage}>
@@ -291,73 +345,10 @@ export class FmPortal extends LitElement {
 		})}
 					</select>
 				</div>
-				<button @click=${this.nextPage}>next</button>
+				<button @click=${this.nextPage} tabindex=0>next</button>
 			</div>
 		`
 	}
-
-	// rowTemplate(row, headers, index) {
-	// 	return headers.reduce((acc, header) => {
-	// 		const path = header.getAttribute('json-path');
-	// 		const field = header.getAttribute('field-name');
-	// 		const scriptName = header.getAttribute('script-name');
-	// 		const isEditable = header.hasAttribute('is-editable');
-	// 		const isSaveButton = header.hasAttribute('save-button');
-	// 		const label = header.getAttribute('label');
-	// 		const evalString = `row.${path}` + (field ? `['${field}']` : '');
-	// 		const value = eval(evalString);
-
-	// 		const clickHandler = () => {
-	// 			this.queryController.performScript({
-	// 				script: scriptName,
-	// 				params: {
-	// 					data: row,
-	// 					index,
-	// 					webviewer: this.webviewerName,
-	// 					request: this.queryController.request
-	// 				},
-	// 				webviewerName: this.webviewerName,
-	// 			})
-	// 		}
-
-	// 		if (isSaveButton) {
-	// 			return html`${acc}<td field-name=${field}><button class='save-row' disabled @click=${this.saveRow.bind(this)}>${label}</button></td>`
-	// 		} else if (isEditable && field.length) {
-	// 			return html`${acc}
-	// 				<td field-name=${field}><input .value=${value} @change=${this.handleValueChanged.bind(this)}></td>`
-	// 		} else if (scriptName) {
-	// 			return html`${acc}<td @click=${clickHandler} field-name=${field}>${label}</td>`
-	// 		} else {
-	// 			return html`${acc}<td field-name=${field}>${value}</td>`
-	// 		}
-	// 	}, html``);
-	// }
-
-
-	// saveRow(e) {
-	// 	const row = e.target.closest('tr').recordData;
-	// 	console.log('save row', row);
-	// 	// re-run the query
-	// 	this.queryController.refresh();
-
-
-	// }
-
-	// handleValueChanged(e) {
-	// 	// if it's an input, get the parent td
-	// 	if (e.target.tagName === 'INPUT') {
-	// 		const td = e.target.closest('td');
-	// 		const field = td.getAttribute('field-name');
-	// 		const row = td.closest('tr');
-	// 		const rowData = row.recordData;
-	// 		rowData.fieldData[field] = e.target.value;
-	// 		rowData.isUpdated = true;
-	// 		// enable the save button
-	// 		const saveButton = row.querySelector('.save-row');
-	// 		saveButton.removeAttribute('disabled');
-
-	// 	}
-	// }
 
 }
 

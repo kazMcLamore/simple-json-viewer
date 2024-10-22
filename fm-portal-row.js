@@ -9,30 +9,35 @@ export class FmPortalRow extends LitElement {
 	static get properties() {
 		return {
 			headers: { type: Array }, // received from parent
-			fields: { type: Object }, // set from recordData
-
-			recordId: { type: Number, reflect: true }, // for controller
-			modId: { type: Number }, // for controller
-			isUpdated: { type: Boolean, reflect: true },
-
+			recordData: { type: Object }, // received from parent
 			controllerOptions: { type: Object }, // received from parent, passed to controller
+			isUpdated: { type: Boolean, state: true }, // set to true when a field is updated
+			valuesArray: { type: Array, state: true }, // calculated from recordData and headers
 		}
 	}
 
-	// set by parent OR by controller after making api request
-	set recordData(value) {
-		if (value === this._recordData) return
-		if (!value) return
-		if (value == {}) return
 
-		this._recordData = value;
-		this.recordId = value.recordId;
-		this.modId = value.modId;
-		this.requestUpdate();
-	}
-
-	get recordData() {
-		return this._recordData;
+	willUpdate(changedProperties) {
+		// set the recordId and modId when recordData changes
+		if (changedProperties.has('recordData')) {
+			this.recordId = this.recordData.recordId;
+			this.modId = this.recordData.modId;
+		}
+		// create/update the recordController when controllerOptions change
+		if (changedProperties.has('controllerOptions')) {
+			if (!this.recordController) {
+				this.recordController = new FmRecordController(this, this.controllerOptions);
+			} else {
+				this.recordController.options = this.controllerOptions;
+			}
+		}
+		// update the valuesArray when recordData or headers change
+		if (changedProperties.has('recordData') || changedProperties.has('headers') ||
+			changedProperties.has('modId')) {
+			if (this.recordData && this.headers) {
+				this.valuesArray = this.getValuesArray(this.recordData, this.headers);
+			}
+		}
 	}
 
 	constructor() {
@@ -40,6 +45,7 @@ export class FmPortalRow extends LitElement {
 		this.recordData = {};
 		this.updatedFields = {};
 		this.index = -1;
+		this.isUpdated = false;
 	}
 
 	render() {
@@ -48,30 +54,25 @@ export class FmPortalRow extends LitElement {
 		}
 
 		return html`
-			<tr>
-				${this.headers.map(header => this.renderCell(header, this.recordData))}
+			<tr tabindex=0>
+				${this.headers.map((header, cellIndex) => this.renderCell(header, this.recordData, cellIndex))}
 			</tr>`
 	}
 
 	// render methods
-	renderCell(header, data) {
-		const path = header.getAttribute('json-path');
-		const field = header.getAttribute('field-name');
-		const evalString = `data.${path}` + (field ? `['${field}']` : '')
+	renderCell(header, data, cellIndex) {
 
 		const options = {
-			path: path,
-			field: field,
+			path: header.getAttribute('json-path'),
+			field: header.getAttribute('field-name'),
 			scriptName: header.getAttribute('script-name'),
+			label: header.getAttribute('label'),
+
 			isEditable: header.hasAttribute('is-editable'),
 			isSaveButton: header.hasAttribute('save-button'),
-			label: header.getAttribute('label'),
-			value: eval(evalString),
 			headerText: header.textContent,
+			cellIndex: cellIndex,
 		}
-		// console.log(options, evalString, data)
-
-
 
 		if (options.isSaveButton) {
 			return this.renderSaveCell(options);
@@ -91,7 +92,8 @@ export class FmPortalRow extends LitElement {
 			<td field-name=${options.field} data-column=${options.headerText}>
 				<button class='save-row' 
 				?disabled=${!this.isUpdated} 
-				@click=${this.saveRecord}>
+				@click=${this.saveRecord}
+				tabindex=0>
 					${options.label}
 				</button>
 			</td>
@@ -99,9 +101,10 @@ export class FmPortalRow extends LitElement {
 	}
 
 	renderEditableCell(options) {
+		const index = options.cellIndex;
 		return html`
 			<td field-name=${options.field} data-column=${options.headerText}>
-				<input .value=${options.value} @change=${this.inputChanged}>
+				<input .value=${this.valuesArray[index]} @change=${this.inputChanged}>
 			</td>
 		`
 	}
@@ -118,17 +121,19 @@ export class FmPortalRow extends LitElement {
 	}
 
 	renderFieldCell(options) {
+		const index = options.cellIndex;
 		return html`
 			<td field-name=${options.field} data-column=${options.headerText}>
-				${options.value}
+				${this.valuesArray[index]}
 			</td>
 		`
 	}
 
 	renderTextCell(options) {
+		const index = options.cellIndex;
 		return html`
 			<td data-column=${options.headerText}>
-				${options.value}
+				${this.valuesArray[index]}
 			</td>
 		`
 	}
@@ -140,9 +145,13 @@ export class FmPortalRow extends LitElement {
 		const params = {
 			data: this.recordData,
 			index: this.index,
-			webviewer: this.webviewerName,
+			webviewer: this.controllerOptions.webviewerName,
 		}
-		this.recordController.performScript({ script: scriptName, params, webviewerName: this.webviewerName });
+		this.recordController.performScript({
+			script: scriptName,
+			params,
+			webviewerName: this.controllerOptions.webviewerName
+		});
 	}
 
 	inputChanged(e) {
@@ -168,14 +177,30 @@ export class FmPortalRow extends LitElement {
 		this.dispatchEvent(event);
 	}
 
-	saveRecord() {
+	saveRecord(e) {
 		// save the record
 		try {
 			this.recordController.updateRecord({ fieldData: this.updatedFields });
-			this.isUpdated = false;
+			// go to next object in tab order
+			const row = e.target.closest('tr');
+			// get the first input element
+			const next = row.querySelector('input');
+			if (next) {
+				next.focus();
+			}
 		} catch (error) {
 			console.error('Error saving record', error);
 		}
+	}
+
+	// helper functions
+	getValuesArray(data, headers) {
+		return headers.map(header => {
+			const path = header.getAttribute('json-path');
+			const field = header.getAttribute('field-name');
+			const evalString = `data.${path}` + (field ? `['${field}']` : '');
+			return eval(evalString) || null;
+		})
 	}
 }
 
