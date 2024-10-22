@@ -301,6 +301,31 @@ class FmRecordController {
 		}
 	};
 
+	// create a method for deleting a new record
+	deleteRecord = async () => {
+		try {
+			// Perform the FileMaker script
+			const result = await WebViewer.performScript({
+				script: this.dataApiScript,
+				params: {
+					recordId: parseInt(this.host.recordId),
+					layouts: this.updateLayout,
+					action: 'delete',
+				},
+				webviewerName: this.webviewerName,
+				scriptOption: WebViewer.scriptOptions.SUSPEND,
+				performOnServer: false,
+			});
+
+			// reset the recordData property
+			this.host.recordData = {};
+
+		} catch (error) {
+			console.error('Error deleting record', error);
+			throw error;
+		}
+	}
+
 	performScript = WebViewer.performScript.bind(this);
 
 }

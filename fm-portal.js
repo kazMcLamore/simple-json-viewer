@@ -33,6 +33,11 @@ export class FmPortal extends LitElement {
 				align-items: center;
 				padding: .2rem .5rem;
 			}
+			div#page-buttons-center {
+				display: flex; 
+				justify-content: center;
+				align-items: center;
+			}
 			div#record-info {
 				text-align: center;
 				padding: .5rem 0 0 0;
@@ -212,6 +217,10 @@ export class FmPortal extends LitElement {
 
 	previousPage() {
 		this.queryController.previousPage();
+	} 
+
+	refresh(){
+		this.queryController.refresh();
 	}
 
 	// event handlers
@@ -255,10 +264,13 @@ export class FmPortal extends LitElement {
 		column.removeAttribute('sort-direction');
 	}
 
-	filterPortal(e) {
+	filterPortal(e) { 
+		// get the search row
 		const searchRow = this.table.querySelector('#search-row');
+		// get the inputs
 		const inputs = searchRow.querySelectorAll('input');
 		const query = {};
+		// get the values from the inputs
 		inputs.forEach(input => {
 			if (!input.value) {
 				return;
@@ -266,6 +278,7 @@ export class FmPortal extends LitElement {
 			const fieldName = input.getAttribute('field-name');
 			query[fieldName] = input.value;
 		})
+		// filter the portal
 		this.queryController.filter(query);
 	}
 
@@ -336,7 +349,7 @@ export class FmPortal extends LitElement {
 		return html`
 			<div id="page-buttons">
 				<button @click=${this.previousPage} tabindex=0>prev</button>
-				<div>
+				<div id="page-buttons-center">
 					<span id='page-number-span'>Page ${query.pageNumber} of ${query.totalPages}</span>
 					<select id='page-selector' @change=${this.changePage}>
 						${Array.from({ length: query.totalPages }, (_, i) => {
@@ -344,6 +357,8 @@ export class FmPortal extends LitElement {
 			return html`<option value=${pageNumber} ?selected=${pageNumber === query.pageNumber}>${pageNumber}</option>`
 		})}
 					</select>
+					<div class='spacer' style="width: 20px"></div>
+					<button @click=${this.refresh}>refresh</button>
 				</div>
 				<button @click=${this.nextPage} tabindex=0>next</button>
 			</div>

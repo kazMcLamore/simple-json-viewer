@@ -70,12 +70,15 @@ export class FmPortalRow extends LitElement {
 
 			isEditable: header.hasAttribute('is-editable'),
 			isSaveButton: header.hasAttribute('save-button'),
+			isDeleteButton: header.hasAttribute('delete-button'),
 			headerText: header.textContent,
 			cellIndex: cellIndex,
 		}
 
 		if (options.isSaveButton) {
 			return this.renderSaveCell(options);
+		} else if (options.isDeleteButton){
+			return this.renderDeleteCell(options);
 		} else if (options.isEditable && options.field.length) {
 			return this.renderEditableCell(options);
 		} else if (options.scriptName) {
@@ -100,6 +103,16 @@ export class FmPortalRow extends LitElement {
 		`
 	}
 
+	renderDeleteCell(options) {
+		return html`
+			<td data-column=${options.headerText}>
+				<button class='delete-row' @click=${this.deleteRecord} tabindex=0>
+					${options.label}
+				</button>
+			</td>
+		`
+	}
+
 	renderEditableCell(options) {
 		const index = options.cellIndex;
 		return html`
@@ -114,7 +127,8 @@ export class FmPortalRow extends LitElement {
 			<td field-name=${options.field} 
 			script-name=${options.scriptName} 
 			@click=${this.clickHandler}
-			data-column=${options.headerText}>
+			data-column=${options.headerText}
+			tabindex=0>
 				${options.label}
 			</td>
 		`
@@ -193,12 +207,20 @@ export class FmPortalRow extends LitElement {
 		}
 	}
 
+	deleteRecord(e){
+		try {
+			this.recordController.deleteRecord();
+		} catch (error) {
+			console.error('Error deleting record', error);
+		}
+	}
+
 	// helper functions
 	getValuesArray(data, headers) {
 		return headers.map(header => {
 			const path = header.getAttribute('json-path');
 			const field = header.getAttribute('field-name');
-			const evalString = `data.${path}` + (field ? `['${field}']` : '');
+			const evalString = `data.${path}` + (field ? `?.['${field}']` : '');
 			return eval(evalString) || null;
 		})
 	}
