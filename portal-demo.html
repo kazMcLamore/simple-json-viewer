@@ -51,7 +51,8 @@
 		<fm-portal id='portal-1' query-script="sub: execute data api (fxp)"
 							 webviewer-name="test-viewer" json-path="data"
 							 query-layout="query: test data v1"
-							 update-layout="query: test data v1">
+							 update-layout="query: test data v1"
+							 platform="filemaker">
 			<json-data key="dataApiQuery">
 			{ "action": "read", "layouts": "query: test data v1",
 				"limit": 20, "query": [ { "__id":"*" } ] } </json-data>
@@ -74,27 +75,6 @@
 			</table>
 		</fm-portal>
 
-		<script>
-			// make basic auth request to get token from FileMaker Server
-			 fetch('https://fm.mx.fxprofessionalservices.com/fmi/data/v1/databases/Integrator Edge/sessions', {
-				method: 'POST',
-				headers: {
-					'Authorization': 'Basic ' + btoa('admin:admin'),
-					'Content-Type': 'application/json',
-					'Accept': 'application/json',
-					'mode': 'no-cors'
-
-				},
-			}).then(response => response.json())
-				.then(data => {
-					console.log(data);
-					// set the token in the portal
-					document.getElementById('portal-1').token = data.response.token;
-				})
-				.catch((error) => {
-					console.error('Error:', error);
-				});
-		</script>
 
 </body>
 
