@@ -5,11 +5,43 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>FM Test Site</title>
+	<link rel="stylesheet" href="/styles/styles.css">
+	<script src="./components/fm-portal.js" type="module"></script>
+	<script src="./components/json-data.js" type="module"></script>
+	<script src="./components/json-viewer.js" type="module"></script>
 </head>
 
 <body>
 	<h1>FM Test Site</h1>
 	<p>Hello World</p>
+	<fm-portal id='portal-1' query-script="sub: execute data api (fxp)"
+						 webviewer-name="test-viewer" json-path="data"
+						 query-layout="query: test data v1"
+						 update-layout="query: test data v1" platform="web">
+		<json-data key="dataApiQuery"> { 
+			"action": "read", 
+			"layouts": "query: test data v1", 
+			"limit": 20, 
+			"query": [ { "__id":"*" } ] 
+		} </json-data>
+		<table>
+			<thead>
+				<tr>
+					<th json-path="recordId">id</th>
+					<th json-path="modId">mod</th>
+					<th json-path="fieldData" field-name="first name" is-searchable
+							is-editable>first name </th>
+					<th json-path="fieldData" field-name="last name" is-searchable
+							is-editable> last name</th>
+					<th json-path="fieldData" field-name="creator" is-searchable>creator
+					</th>
+					<th script-name="dialog" label="dialog">script</th>
+					<th save-button label="save"></th>
+					<th delete-button label="x"></th>
+				</tr>
+			</thead>
+		</table>
+	</fm-portal>
 </body>
 
 </html>

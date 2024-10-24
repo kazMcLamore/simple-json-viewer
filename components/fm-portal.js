@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing, render } from 'https://cdn.skypack.dev/lit-element';
 import { cache } from 'https://cdn.skypack.dev/lit/directives/cache.js';
 import { repeat } from 'https://cdn.skypack.dev/lit/directives/repeat.js';
-import { FmQueryController } from './FileMaker.js';
+import { FmQueryController } from '../utilities/FileMaker.js';
 import { FmPortalRow } from './fm-portal-row.js';
 
 
@@ -88,26 +88,27 @@ export class FmPortal extends LitElement {
 				padding: .3rem .5rem;
 				gap: .2rem;
 			}
-			#page-selector {
+			slot {
+				position: relative;
+			}
+			select#page-selector {
 				padding: .2rem;
 				margin-left: .5rem;
 				background-color: inherit;
 				border: 1px solid rgb(183, 183, 183);
-			}
-			slot {
-				position: relative;
+				border-radius: 5px;
 			}
 		`
 	}
 
 	static get properties() {
 		return {
-			dataApiResponse: { type: Object },
-			dataApiQuery: { type: Object },
+			dataApiResponse: { type: Object, attribute: false },
+			dataApiQuery: { type: Object, attribute: false },
 			scriptName: { type: String, reflect: true, attribute: 'query-script' },
 			webviewerName: { type: String, reflect: true, attribute: 'webviewer-name' },
 			jsonPath: { type: String, reflect: true, attribute: 'json-path' },
-			error: { type: String },
+			error: { type: String, attribute: false },
 			queryLayout: { type: String, reflect: true, attribute: 'query-layout' },
 			updateLayout: { type: String, reflect: true, attribute: 'update-layout' },
 			platform: { type: String, reflect: true },
@@ -173,7 +174,7 @@ export class FmPortal extends LitElement {
 
 		let tableBody;
 
-		if(!table.querySelector('tbody')) {
+		if (!table.querySelector('tbody')) {
 			tableBody = document.createElement('tbody');
 			tableBody.addEventListener('keydown', this.onArrowKey);
 		} else {
@@ -193,7 +194,7 @@ export class FmPortal extends LitElement {
 		// generate rows template
 		const rowsTemplate = html`
 			${repeat(rows, (row) => row.recordId, (row, index) => {
-				return html`
+			return html`
 						<fm-portal-row 
 							.recordData=${row}
 							.headers=${headers}
@@ -218,9 +219,9 @@ export class FmPortal extends LitElement {
 
 	previousPage() {
 		this.queryController.previousPage();
-	} 
+	}
 
-	refresh(){
+	refresh() {
 		this.queryController.refresh();
 	}
 
@@ -265,7 +266,7 @@ export class FmPortal extends LitElement {
 		column.removeAttribute('sort-direction');
 	}
 
-	filterPortal(e) { 
+	filterPortal(e) {
 		// get the search row
 		const searchRow = this.table.querySelector('#search-row');
 		// get the inputs
@@ -292,24 +293,24 @@ export class FmPortal extends LitElement {
 		const element = e.target;
 		console.log('key', key, 'element', element, 'row', row, 'portalRow', portalRow);
 		// determine if this is an input
-		if((key === 'ArrowDown' || key === 'ArrowUp') && element.tagName === 'INPUT') {
+		if ((key === 'ArrowDown' || key === 'ArrowUp') && element.tagName === 'INPUT') {
 			const cell = element.closest('td');
 			const cellIndex = cell.cellIndex;
 			const nextRow = key === 'ArrowDown' ? portalRow.nextElementSibling : portalRow.previousElementSibling;
-			if(nextRow) {
+			if (nextRow) {
 				const nextCell = nextRow.querySelector(`td:nth-child(${cellIndex + 1})`);
 				const nextInput = nextCell.querySelector('input');
-				if(nextInput) {
+				if (nextInput) {
 					nextInput.focus();
 				}
 			}
 		} else if ((key === 'ArrowDown' || key === 'ArrowUp') && element.tagName === 'TR') {
 			const nextPortalRow = key === 'ArrowDown' ? portalRow.nextElementSibling : portalRow.previousElementSibling;
 			const nextTableRow = nextPortalRow.querySelector('tr');
-			if(nextTableRow) {
+			if (nextTableRow) {
 				nextTableRow.focus();
 			}
-			
+
 		}
 
 	}

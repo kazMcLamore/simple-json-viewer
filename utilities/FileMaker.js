@@ -98,10 +98,134 @@ class WebViewer {
 	}
 }
 
+class FmDapi {
+
+	#username;
+	#password;
+
+	static instance;
+
+	constructor(options) {
+
+		// singleton class
+		if (FmDapi.instance) {
+			return FmDapi.instance;
+		}
+
+		FmDapi.instance = this;
+
+		// set the options
+		const { domain, database, version = 'Latest', username, password } = options;
+		this.domain = domain || 'fm.mx.fxprofessionalservices.com';
+		this.#username = username || 'admin';
+		this.#password = password || 'bfFN66plAeY1Hpzg<Gfv';
+		this.database = database || 'Integrator Edge';
+		this.version = version;
+		this.token = null;
+	}
+
+	#authenticate = async () => {
+		const credentials = btoa(`${this.username}:${this.password}`);
+		const authHeader = `Basic ${credentials}`;
+		const response = await fetch(`https://${this.domain}/fmi/data/v${this.version}/databases/${this.database}/sessions`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': authHeader,
+			},
+		});
+		const data = await response.json();
+		const token = data.response.token;
+		this.token = token;
+	}
+
+	#transformToFetch = (query) => {
+
+		// don't mutate the original query
+		const queryCopy = { ...query };
+
+		// extract these for the url
+		const layout = query.layouts;
+		const action = query.action;
+		const recordId = query.recordId;
+
+		// remove unneeded properties from query
+		delete queryCopy.layouts;
+		delete queryCopy.recordId;
+		delete queryCopy.action;
+
+		// prepare the fetch options
+		let result;
+
+		if (action == 'read') {
+			result = {
+				url: `https://${this.domain}/fmi/data/v${this.version}/databases/${this.database}/layouts/${layout}/_find`,
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+				body: JSON.stringify(queryCopy),
+			}
+		} else if (action == 'update') {
+			result = {
+				url: `https://${this.domain}/fmi/data/v${this.version}/databases/${this.database}/layouts/${layout}/records/${recordId}`,
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+				body: JSON.stringify(queryCopy),
+			}
+		} else if (action == 'delete') {
+			result = {
+				url: `https://${this.domain}/fmi/data/v${this.version}/databases/${this.database}/layouts/${layout}/records/${recordId}`,
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+			}
+		}
+
+		return result;
+	}
+
+	performRequest = async (query) => {
+		if (!this.token) {
+			await this.#authenticate();
+		}
+
+		try {
+			const fetchOptions = this.#transformToFetch(query);
+			const response = await fetch(fetchOptions.url, fetchOptions);
+			const result = await response.json();
+			return result;
+		} catch (error) {
+			console.error('Error fetching data', error);
+			if (response.status === 401) {
+				this.#authenticate();
+				// retry the fetch
+				try {
+					const response = await fetch(fetchOptions.url, fetchOptions);
+					const result = await response.json();
+					return result;
+				} catch (error) {
+					console.error('Error during re-auth', error);
+					throw error;
+				}
+			}
+		}
+	}
+
+}
+
 // FileMaker Query Controller
 // This class is used to manage the state of a FileMaker query
 // and to perform the query using the WebViewer class
 class FmQueryController {
+
+	#hostUrl = 'https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/layouts/';
 
 	constructor(host) {
 		// Store a reference to the host
@@ -117,6 +241,12 @@ class FmQueryController {
 		this.foundCount = 0;
 		this.sortFields = [];
 		this.token = null;
+		this.dapi = new FmDapi({
+			username: 'admin',
+			password: 'bfFN66plAeY1Hpzg<Gfv',
+			domain: 'fm.mx.fxprofessionalservices.com',
+			database: 'Integrator Edge',
+		});
 
 		// Create a task for the query
 		this.queryTask = new Task(host, {
@@ -140,21 +270,17 @@ class FmQueryController {
 
 				this.request = query;
 
-				if (this.host.platform === 'web' && !this.token) {
-					const response = await fetch('https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/sessions', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': 'Basic ' + btoa('admin:zEs#Mr4^@KU2#M#'),
-						},
-					});
-					const data = await response.json();
-					this.token = data.response.token;
-				}
+				let result, response;
 
-				let result;
-				// Perform the FileMaker script
-				if (this.host.platform === 'filemaker') {
+				if (this.host.platform === 'web') {
+					// perform the web request
+					try {
+						result = await this.dapi.performRequest(query);
+					} catch (error) {
+						console.error('Error fetching data', error);
+					}
+				} else {
+					// perform the FileMaker script
 					result = await WebViewer.performScript({
 						script: this.host.scriptName,
 						params: query,
@@ -162,27 +288,9 @@ class FmQueryController {
 						scriptOption: WebViewer.scriptOptions.SUSPEND,
 						performOnServer: false,
 					});
-				} else if (this.host.platform === 'web') {
-
-					// remove unneeded properties from query
-					const layout = query.layouts;
-					delete query.layouts;
-					delete query.action;
-
-
-
-					// perform regular fetch request
-					result = await fetch(`https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/${query.layouts}_find?`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							'Authorization': 'Bearer ' + this.token,
-						},
-
-						body: JSON.stringify(query),
-					})
 				}
 
+				result = result.response || result;
 
 				if (result.dataInfo) {
 					this.foundCount = result.dataInfo.foundCount;
@@ -283,7 +391,73 @@ class FmQueryController {
 		this.queryTask.run();
 	}
 
-	performScript = WebViewer.performScript.bind(this);
+	authenticate = async () => {
+		const username = 'admin';
+		const password = 'bfFN66plAeY1Hpzg<Gfv';
+		const credentials = btoa(`${username}:${password}`);
+		const authHeader = `Basic ${credentials}`;
+		const response = await fetch('https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/sessions', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': authHeader,
+			},
+		});
+		const data = await response.json();
+		const token = data.response.token;
+		this.token = token;
+		return token
+	}
+
+	transformToFetch = (query) => {
+		// remove unneeded properties from query
+		const queryCopy = { ...query };
+		const layout = query.layouts;
+		const action = query.action;
+		const recordId = query.recordId;
+		delete queryCopy.layouts;
+		delete queryCopy.recordId;
+		delete queryCopy.action;
+		let result = {};
+
+		if (action == 'read') {
+			result = {
+				url: `https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/layouts/${layout}/_find`,
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+				body: JSON.stringify(queryCopy),
+			}
+		} else if (action == 'update') {
+			result = {
+				url: `https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/layouts/${layout}/records/${recordId}`,
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+				body: JSON.stringify(queryCopy),
+			}
+		} else if (action == 'delete') {
+			result = {
+				url: `https://fm.mx.fxprofessionalservices.com/fmi/data/vLatest/databases/Integrator Edge/layouts/${layout}/records/${recordId}`,
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer ' + this.token,
+				},
+			}
+		}
+		console.log('transform', query, result)
+		return result;
+	}
+
+	performScript(options){
+		options.webviewerName = this.host.webviewerName;
+		return WebViewer.performScript(options);
+	}
 }
 
 // Controller for managing a FileMaker record
@@ -293,7 +467,10 @@ class FmQueryController {
 // it sends and updates the recordData property of the host
 class FmRecordController {
 	constructor(host, options) {
+
+		// Store a reference to the host
 		this.host = host;
+		
 		// Register for lifecycle updates
 		host.addController(this);
 
@@ -301,28 +478,40 @@ class FmRecordController {
 		this.updateLayout = options.updateLayout;
 		this.queryLayout = options.queryLayout;
 		this.webviewerName = options.webviewerName;
-		// console.log('controller mounted', options)
+
+		this.dapi = new FmDapi({
+			username: 'admin',
+			password: 'bfFN66plAeY1Hpzg<Gfv',
+			domain: 'fm.mx.fxprofessionalservices.com',
+			database: 'Integrator Edge',
+		});
 	}
 
-	// create a method for updating the record
 	updateRecord = async (recordData) => {
 		try {
-			// Perform the FileMaker script
-			const result = await WebViewer.performScript({
+			let result;
+
+			const options = {
 				script: this.dataApiScript,
 				params: {
-					...recordData, // fieldData and possibly portalData
+					...recordData,
 					recordId: parseInt(this.host.recordId),
-					// modId: parseInt(this.host.modId),
 					layouts: this.updateLayout,
 					action: 'update',
 				},
 				webviewerName: this.webviewerName,
 				scriptOption: WebViewer.scriptOptions.SUSPEND,
 				performOnServer: false,
-			});
+			}
+
+			if (this.host.platform === 'web') {
+				result = await this.dapi.performRequest(options.params);
+			} else {
+				result = await WebViewer.performScript(options);
+			}
 
 			// merge the FIELDS object from recordData with the one from recordData
+			// the FM Data api only returns the modId after a successful update
 			const newFields = recordData.fieldData;
 			const oldFields = this.host.recordData.fieldData;
 			const mergedFields = { ...oldFields, ...newFields };
@@ -332,16 +521,16 @@ class FmRecordController {
 			this.host.isUpdated = false;
 
 		} catch (error) {
-			console.error('Error updating record', error, this.dataApiScript, recordData);
+			console.error('Error updating record', error);
 			throw error;
 		}
 	};
 
-	// create a method for deleting a new record
 	deleteRecord = async () => {
 		try {
-			// Perform the FileMaker script
-			const result = await WebViewer.performScript({
+			let result;
+
+			const options = {
 				script: this.dataApiScript,
 				params: {
 					recordId: parseInt(this.host.recordId),
@@ -351,7 +540,13 @@ class FmRecordController {
 				webviewerName: this.webviewerName,
 				scriptOption: WebViewer.scriptOptions.SUSPEND,
 				performOnServer: false,
-			});
+			}
+
+			if (this.host.platform === 'web') {
+				result = await this.dapi.performRequest(options.params);
+			} else {
+				result = await WebViewer.performScript(options);
+			}
 
 			// reset the recordData property
 			this.host.recordData = {};

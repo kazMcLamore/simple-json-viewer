@@ -20,7 +20,7 @@ export class JsonData extends LitElement {
 	willUpdate(changedProperties) {
 		if (changedProperties.has('data')) {
 			const { key, data } = this;
-			console.log('adding to parent')
+			console.log('adding to parent', key, data, this.parentElement);
 			const parent = this.parentElement;
 			// add the data to the parent element
 			parent[key] = data;
@@ -45,11 +45,14 @@ export class JsonData extends LitElement {
 			for (const [key, value] of urlParams) {
 				textTrimmed = textTrimmed.replace(`{{${key}}}`, value);
 			}
+			console.log('textTrimmed', textTrimmed);
+			
 
 			const json = JSON.parse(textTrimmed);
 			this.data = json;
 		} catch (error) {
 			console.error('Error parsing JSON', error);
+
 			throw error;
 		}
 	}

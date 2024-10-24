@@ -1,5 +1,5 @@
 import { LitElement, html, css } from 'https://cdn.skypack.dev/lit-element';
-import { FmRecordController } from './FileMaker.js';
+import { FmRecordController } from '../utilities/FileMaker.js';
 
 export class FmPortalRow extends LitElement {
 	createRenderRoot() {
@@ -49,9 +49,6 @@ export class FmPortalRow extends LitElement {
 	}
 
 	render() {
-		if (!this.recordController) {
-			this.recordController = new FmRecordController(this, this.controllerOptions);
-		}
 
 		return html`
 			<tr tabindex=0>
@@ -77,7 +74,7 @@ export class FmPortalRow extends LitElement {
 
 		if (options.isSaveButton) {
 			return this.renderSaveCell(options);
-		} else if (options.isDeleteButton){
+		} else if (options.isDeleteButton) {
 			return this.renderDeleteCell(options);
 		} else if (options.isEditable && options.field.length) {
 			return this.renderEditableCell(options);
@@ -92,7 +89,7 @@ export class FmPortalRow extends LitElement {
 
 	renderSaveCell(options) {
 		return html`
-			<td field-name=${options.field} data-column=${options.headerText}>
+			<td field-name=${options.field} data-column=${options.headerText} class='button'>
 				<button class='save-row' 
 				?disabled=${!this.isUpdated} 
 				@click=${this.saveRecord}
@@ -105,7 +102,7 @@ export class FmPortalRow extends LitElement {
 
 	renderDeleteCell(options) {
 		return html`
-			<td data-column=${options.headerText}>
+			<td data-column=${options.headerText} class='button'>
 				<button class='delete-row' @click=${this.deleteRecord} tabindex=0>
 					${options.label}
 				</button>
@@ -164,7 +161,6 @@ export class FmPortalRow extends LitElement {
 		this.recordController.performScript({
 			script: scriptName,
 			params,
-			webviewerName: this.controllerOptions.webviewerName
 		});
 	}
 
@@ -174,8 +170,6 @@ export class FmPortalRow extends LitElement {
 		const value = e.target.value;
 		this.updatedFields[field] = value;
 		this.isUpdated = true;
-
-		// this.requestUpdate();
 
 		// dispatch custom event
 		const event = new CustomEvent('field-changed', {
@@ -207,7 +201,7 @@ export class FmPortalRow extends LitElement {
 		}
 	}
 
-	deleteRecord(e){
+	deleteRecord(e) {
 		try {
 			this.recordController.deleteRecord();
 		} catch (error) {

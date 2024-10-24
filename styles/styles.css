@@ -43,6 +43,16 @@ th, td {
 	padding: 4px;
 }
 
+tr#search-row input {
+	color: black;
+	font-size: medium;
+}
+
+td, td input {
+	color: #7c7c7c;
+	font-weight: light;
+}
+
 
 table input {
 	width: 100%;
@@ -55,4 +65,8 @@ table input {
 th {
 	position: sticky;
 	top: 0px;
+}
+
+td.button {
+	text-align: center;
 }

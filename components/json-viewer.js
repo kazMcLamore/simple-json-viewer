@@ -2,7 +2,7 @@
 import { html, css, LitElement } from 'https://cdn.skypack.dev/lit';
 
 // import the FileMaker query controller
-import { FmQueryController } from './FileMaker.js';
+import { FmQueryController } from '../utilities/FileMaker.js';
 
 // import sub elements
 import { JsonElement } from './json-element.js';
@@ -120,7 +120,7 @@ export class JsonViewer extends LitElement {
 	}
 
 	willUpdate(changedProperties) {
-		if (changedProperties.has('dataApiResponse')) { 
+		if (changedProperties.has('dataApiResponse')) {
 
 			// convert from string if needed
 			if (typeof this.dataApiResponse === 'string') {
@@ -138,23 +138,23 @@ export class JsonViewer extends LitElement {
 			<details ?open=${this.open}>
 			<summary>${this.title ? this.title : ''}${this.elementCount - 1} Elements</summary>
 			${this.queryController.queryTask.render({
-				initial: () => html`<div class='loading'>loading the component ...</div>`,
-				pending: () => html`<div class='loading'>getting data ...</div>`,
-				complete: (data) => html`
+			initial: () => html`<div class='loading'>loading the component ...</div>`,
+			pending: () => html`<div class='loading'>getting data ...</div>`,
+			complete: (data) => html`
 					<json-element
 						.value=${eval(`data.${this.jsonPath}`)} 
 						.expanded=${true} 
 						.bracketColors=${this.bracketColors}>
 					</json-element>
 				`,
-				error: (err) => html`<div class='error'>Error loading the component: ${err.message}</div>`,
-			})}
+			error: (err) => html`<div class='error'>Error loading the component: ${err.message}</div>`,
+		})}
 			</details>
 		`
 	}
 
 	// helper functions
-	countAllElements(json) { 
+	countAllElements(json) {
 		let count = 0;
 		function countElements(value) {
 			if (Array.isArray(value)) {
